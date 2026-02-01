@@ -10,6 +10,11 @@
     <link rel="icon" type="image/png" href="favicon.png">
     <link rel="apple-touch-icon" href="favicon.png">
     <link rel="stylesheet" href="styles.css">
+    
+    <!-- Load Google Identity Services first -->
+    <script src="https://accounts.google.com/gsi/client" async defer></script>
+    <!-- Load Google API Client -->
+    <script src="https://apis.google.com/js/api.js" async defer></script>
 </head>
 <body>
     <!-- Offline Banner -->
@@ -100,6 +105,7 @@
         <p>Loading...</p>
     </div>
 
+    <!-- Load config and app AFTER Google scripts are declared -->
     <script src="config.js"></script>
     <script src="app.js"></script>
 </body>

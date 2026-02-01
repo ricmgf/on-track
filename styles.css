@@ -1,0 +1,655 @@
+/* ========================================
+   RESET & BASE STYLES
+   ======================================== */
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+    -webkit-tap-highlight-color: transparent;
+}
+
+body {
+    font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "Helvetica Neue", Helvetica, Arial, sans-serif;
+    background: #000;
+    color: #fff;
+    overflow: hidden;
+    position: fixed;
+    width: 100%;
+    height: 100%;
+    -webkit-user-select: none;
+    user-select: none;
+    -webkit-touch-callout: none;
+}
+
+/* ========================================
+   SAFE AREA SUPPORT
+   ======================================== */
+
+.app-container {
+    height: 100vh;
+    height: 100dvh;
+    display: flex;
+    flex-direction: column;
+    padding-top: env(safe-area-inset-top);
+    padding-bottom: env(safe-area-inset-bottom);
+    background: #000;
+}
+
+/* ========================================
+   OFFLINE BANNER
+   ======================================== */
+
+.offline-banner {
+    position: fixed;
+    top: env(safe-area-inset-top);
+    left: 0;
+    right: 0;
+    background: #ff3b30;
+    color: #fff;
+    text-align: center;
+    padding: 8px;
+    font-size: 14px;
+    font-weight: 500;
+    z-index: 1000;
+    transition: transform 0.3s ease;
+}
+
+.offline-banner.hidden {
+    transform: translateY(-100%);
+}
+
+/* ========================================
+   LOADING OVERLAY
+   ======================================== */
+
+.loading-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.9);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    z-index: 2000;
+    transition: opacity 0.3s ease;
+}
+
+.loading-overlay.hidden {
+    opacity: 0;
+    pointer-events: none;
+}
+
+.spinner {
+    width: 40px;
+    height: 40px;
+    border: 3px solid rgba(255, 255, 255, 0.2);
+    border-top-color: #fff;
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+    to { transform: rotate(360deg); }
+}
+
+.loading-overlay p {
+    margin-top: 16px;
+    font-size: 16px;
+    color: rgba(255, 255, 255, 0.7);
+}
+
+/* ========================================
+   VIEW CONTAINER
+   ======================================== */
+
+.view {
+    display: none;
+    flex: 1;
+    flex-direction: column;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+    padding: 0 16px 80px 16px;
+}
+
+.view.active {
+    display: flex;
+}
+
+.view-header {
+    padding: 20px 0 16px 0;
+    position: sticky;
+    top: 0;
+    background: #000;
+    z-index: 10;
+}
+
+.view-header h1 {
+    font-size: 34px;
+    font-weight: 700;
+    letter-spacing: -0.5px;
+}
+
+/* ========================================
+   DAILY VIEW
+   ======================================== */
+
+.date-picker {
+    margin-top: 12px;
+    background: #1c1c1e;
+    border: none;
+    border-radius: 10px;
+    padding: 12px 16px;
+    color: #fff;
+    font-size: 17px;
+    width: 100%;
+    -webkit-appearance: none;
+}
+
+.date-picker::-webkit-calendar-picker-indicator {
+    filter: invert(1);
+}
+
+.activity-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+    margin-top: 16px;
+}
+
+.activity-btn {
+    min-height: 88px;
+    border: none;
+    border-radius: 12px;
+    font-size: 17px;
+    font-weight: 600;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    transition: all 0.2s ease;
+    cursor: pointer;
+    position: relative;
+}
+
+.activity-btn:active {
+    transform: scale(0.96);
+}
+
+.activity-btn.disabled {
+    opacity: 0.3;
+    pointer-events: none;
+}
+
+.activity-btn .icon {
+    font-size: 28px;
+}
+
+/* Activity-specific colors */
+.activity-btn[data-activity="UpperBody"] {
+    background: #8B4049;
+    color: #fff;
+}
+
+.activity-btn[data-activity="UpperBody"].active {
+    background: #A85A64;
+}
+
+.activity-btn[data-activity="LowerBody"] {
+    background: #5D2932;
+    color: #fff;
+}
+
+.activity-btn[data-activity="LowerBody"].active {
+    background: #7A3A45;
+}
+
+.activity-btn[data-activity="Zone2"] {
+    background: #3A6B8C;
+    color: #fff;
+}
+
+.activity-btn[data-activity="Zone2"].active {
+    background: #4A8BB0;
+}
+
+.activity-btn[data-activity="VO2Max"] {
+    background: #1F3A52;
+    color: #fff;
+}
+
+.activity-btn[data-activity="VO2Max"].active {
+    background: #2A4D6E;
+}
+
+.activity-btn[data-activity="Walk"] {
+    background: #5A9ABF;
+    color: #fff;
+}
+
+.activity-btn[data-activity="Walk"].active {
+    background: #6FB3D9;
+}
+
+.activity-btn[data-activity="SportDay"] {
+    background: #4A6B7F;
+    color: #fff;
+}
+
+.activity-btn[data-activity="SportDay"].active {
+    background: #5D8399;
+}
+
+.activity-btn[data-activity="Sauna"] {
+    background: #D97E47;
+    color: #fff;
+}
+
+.activity-btn[data-activity="Sauna"].active {
+    background: #E69A66;
+}
+
+.activity-btn[data-activity="ColdPlunge"] {
+    background: #4DA6BA;
+    color: #fff;
+}
+
+.activity-btn[data-activity="ColdPlunge"].active {
+    background: #6BBFD1;
+}
+
+.activity-btn[data-activity="RestDay"] {
+    background: #3A3A3C;
+    color: #fff;
+}
+
+.activity-btn[data-activity="RestDay"].active {
+    background: #5A5A5C;
+}
+
+/* ========================================
+   WEEK VIEW
+   ======================================== */
+
+.week-toggle {
+    display: flex;
+    gap: 8px;
+    margin-top: 12px;
+}
+
+.toggle-btn {
+    flex: 1;
+    padding: 10px 16px;
+    background: #1c1c1e;
+    border: none;
+    border-radius: 10px;
+    color: rgba(255, 255, 255, 0.6);
+    font-size: 15px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.toggle-btn.active {
+    background: #fff;
+    color: #000;
+}
+
+.toggle-btn:active {
+    transform: scale(0.98);
+}
+
+.week-timeline {
+    margin-top: 16px;
+}
+
+.day-card {
+    background: #1c1c1e;
+    border-radius: 12px;
+    padding: 16px;
+    margin-bottom: 12px;
+}
+
+.day-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 12px;
+}
+
+.day-name {
+    font-size: 17px;
+    font-weight: 600;
+}
+
+.day-date {
+    font-size: 15px;
+    color: rgba(255, 255, 255, 0.6);
+}
+
+.activity-chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+.activity-chip {
+    padding: 6px 12px;
+    border-radius: 8px;
+    font-size: 14px;
+    font-weight: 500;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.activity-chip .icon {
+    font-size: 16px;
+}
+
+.activity-chip.empty {
+    color: rgba(255, 255, 255, 0.4);
+    background: transparent;
+    border: 1px dashed rgba(255, 255, 255, 0.2);
+}
+
+/* Activity chip colors */
+.activity-chip[data-activity="UpperBody"] {
+    background: #8B4049;
+}
+
+.activity-chip[data-activity="LowerBody"] {
+    background: #5D2932;
+}
+
+.activity-chip[data-activity="Zone2"] {
+    background: #3A6B8C;
+}
+
+.activity-chip[data-activity="VO2Max"] {
+    background: #1F3A52;
+}
+
+.activity-chip[data-activity="Walk"] {
+    background: #5A9ABF;
+}
+
+.activity-chip[data-activity="SportDay"] {
+    background: #4A6B7F;
+}
+
+.activity-chip[data-activity="Sauna"] {
+    background: #D97E47;
+}
+
+.activity-chip[data-activity="ColdPlunge"] {
+    background: #4DA6BA;
+}
+
+.activity-chip[data-activity="RestDay"] {
+    background: #3A3A3C;
+}
+
+.week-summary {
+    background: #1c1c1e;
+    border-radius: 12px;
+    padding: 16px;
+    margin-top: 8px;
+    margin-bottom: 16px;
+}
+
+.week-summary h3 {
+    font-size: 17px;
+    font-weight: 600;
+    margin-bottom: 12px;
+}
+
+.summary-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+}
+
+.summary-item {
+    font-size: 15px;
+    color: rgba(255, 255, 255, 0.8);
+}
+
+.summary-item .count {
+    font-weight: 600;
+    color: #fff;
+}
+
+/* ========================================
+   MONTH VIEW
+   ======================================== */
+
+.month-nav {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.nav-btn {
+    width: 44px;
+    height: 44px;
+    border: none;
+    background: #1c1c1e;
+    color: #fff;
+    font-size: 24px;
+    border-radius: 10px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.nav-btn:active {
+    transform: scale(0.94);
+    background: #2c2c2e;
+}
+
+.month-scorecard {
+    margin-top: 16px;
+}
+
+.scorecard-item {
+    background: #1c1c1e;
+    border-radius: 12px;
+    padding: 16px;
+    margin-bottom: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.scorecard-activity {
+    font-size: 17px;
+    font-weight: 500;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.scorecard-activity .icon {
+    font-size: 20px;
+}
+
+.scorecard-progress {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.scorecard-numbers {
+    font-size: 17px;
+    font-weight: 600;
+    font-variant-numeric: tabular-nums;
+}
+
+.scorecard-status {
+    font-size: 20px;
+}
+
+.scorecard-item.on-track .scorecard-numbers {
+    color: #30d158;
+}
+
+.scorecard-item.behind .scorecard-numbers {
+    color: #ff453a;
+}
+
+/* ========================================
+   GOALS VIEW
+   ======================================== */
+
+.goals-subtitle {
+    font-size: 17px;
+    color: rgba(255, 255, 255, 0.6);
+    margin-top: 4px;
+}
+
+.goals-list {
+    margin-top: 16px;
+}
+
+.goal-item {
+    background: #1c1c1e;
+    border-radius: 12px;
+    padding: 16px;
+    margin-bottom: 12px;
+}
+
+.goal-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 12px;
+}
+
+.goal-name {
+    font-size: 17px;
+    font-weight: 500;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.goal-name .icon {
+    font-size: 20px;
+}
+
+.goal-input-group {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.stepper {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    background: #2c2c2e;
+    border-radius: 10px;
+    padding: 8px;
+}
+
+.stepper-btn {
+    width: 36px;
+    height: 36px;
+    border: none;
+    background: #3a3a3c;
+    color: #fff;
+    font-size: 20px;
+    font-weight: 600;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.stepper-btn:active {
+    transform: scale(0.92);
+    background: #4a4a4c;
+}
+
+.stepper-value {
+    min-width: 40px;
+    text-align: center;
+    font-size: 17px;
+    font-weight: 600;
+    font-variant-numeric: tabular-nums;
+}
+
+.monthly-derived {
+    font-size: 15px;
+    color: rgba(255, 255, 255, 0.5);
+    margin-top: 8px;
+}
+
+.monthly-derived .value {
+    font-weight: 600;
+    color: rgba(255, 255, 255, 0.7);
+}
+
+/* ========================================
+   BOTTOM NAVIGATION
+   ======================================== */
+
+.bottom-nav {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    background: rgba(28, 28, 30, 0.95);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    display: flex;
+    padding: 8px 0;
+    padding-bottom: calc(8px + env(safe-area-inset-bottom));
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
+    z-index: 100;
+}
+
+.nav-item {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+    padding: 8px;
+    border: none;
+    background: transparent;
+    color: rgba(255, 255, 255, 0.5);
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.nav-item.active {
+    color: #fff;
+}
+
+.nav-icon {
+    font-size: 24px;
+}
+
+.nav-label {
+    font-size: 11px;
+    font-weight: 500;
+}
+
+.nav-item:active {
+    transform: scale(0.94);
+}
+
+/* ========================================
+   DISABLED STATE (OFFLINE)
+   ======================================== */
+
+body.offline .activity-btn,
+body.offline .stepper-btn,
+body.offline .date-picker {
+    opacity: 0.5;
+    pointer-events: none;
+}

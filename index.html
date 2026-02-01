@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="On Track">
+    <title>On Track</title>
+    <link rel="icon" type="image/png" href="favicon.png">
+    <link rel="apple-touch-icon" href="favicon.png">
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <!-- Offline Banner -->
+    <div id="offlineBanner" class="offline-banner hidden">
+        Offline — connect to sync
+    </div>
+
+    <!-- Main Container -->
+    <div id="app" class="app-container">
+        
+        <!-- Daily View -->
+        <div id="dailyView" class="view active">
+            <div class="view-header">
+                <h1>Daily</h1>
+                <input type="date" id="dailyDatePicker" class="date-picker">
+            </div>
+            <div id="dailyGrid" class="activity-grid">
+                <!-- Activity buttons will be dynamically generated -->
+            </div>
+        </div>
+
+        <!-- Week View -->
+        <div id="weekView" class="view">
+            <div class="view-header">
+                <h1>Week</h1>
+                <div class="week-toggle">
+                    <button id="thisWeekBtn" class="toggle-btn active">This Week</button>
+                    <button id="last7DaysBtn" class="toggle-btn">Last 7 Days</button>
+                </div>
+            </div>
+            <div id="weekTimeline" class="week-timeline">
+                <!-- Week timeline will be dynamically generated -->
+            </div>
+            <div id="weekSummary" class="week-summary">
+                <!-- Weekly counts will be dynamically generated -->
+            </div>
+        </div>
+
+        <!-- Month View -->
+        <div id="monthView" class="view">
+            <div class="view-header">
+                <div class="month-nav">
+                    <button id="prevMonthBtn" class="nav-btn">‹</button>
+                    <h1 id="monthTitle">Month</h1>
+                    <button id="nextMonthBtn" class="nav-btn">›</button>
+                </div>
+            </div>
+            <div id="monthScorecard" class="month-scorecard">
+                <!-- Monthly scorecard will be dynamically generated -->
+            </div>
+        </div>
+
+        <!-- Goals View -->
+        <div id="goalsView" class="view">
+            <div class="view-header">
+                <h1>Goals</h1>
+                <p class="goals-subtitle">Weekly targets</p>
+            </div>
+            <div id="goalsList" class="goals-list">
+                <!-- Goals inputs will be dynamically generated -->
+            </div>
+        </div>
+
+        <!-- Bottom Navigation -->
+        <nav class="bottom-nav">
+            <button class="nav-item active" data-view="dailyView">
+                <span class="nav-icon">📅</span>
+                <span class="nav-label">Daily</span>
+            </button>
+            <button class="nav-item" data-view="weekView">
+                <span class="nav-icon">📊</span>
+                <span class="nav-label">Week</span>
+            </button>
+            <button class="nav-item" data-view="monthView">
+                <span class="nav-icon">🎯</span>
+                <span class="nav-label">Month</span>
+            </button>
+            <button class="nav-item" data-view="goalsView">
+                <span class="nav-icon">⚙️</span>
+                <span class="nav-label">Goals</span>
+            </button>
+        </nav>
+    </div>
+
+    <!-- Loading Overlay -->
+    <div id="loadingOverlay" class="loading-overlay">
+        <div class="spinner"></div>
+        <p>Loading...</p>
+    </div>
+
+    <script src="config.js"></script>
+    <script src="app.js"></script>
+</body>
+</html>

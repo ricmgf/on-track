@@ -84,13 +84,20 @@ function checkStoredToken() {
         accessToken = storedToken;
         isSignedIn = true;
         window.gapi.client.setToken({ access_token: accessToken });
-        hideAuthOverlay();
+        
+        // Hide auth, show app
+        hideLoading();
+        document.getElementById('authOverlay').classList.add('hidden');
+        document.getElementById('app').classList.remove('hidden');
+        
         loadAllData();
     } else {
         console.log('ℹ️ No valid stored token, showing sign-in screen');
         sessionStorage.removeItem('accessToken');
         sessionStorage.removeItem('tokenExpiry');
-        showAuthOverlay();
+        
+        // Hide loading, auth overlay is already visible
+        hideLoading();
     }
 }
 
@@ -132,19 +139,22 @@ function handleAuthResponse(response) {
     }
     
     if (response.access_token) {
+        console.log('✅ Token received');
         accessToken = response.access_token;
         const expiryTime = Date.now() + (3600 * 1000);
         sessionStorage.setItem('accessToken', accessToken);
         sessionStorage.setItem('tokenExpiry', expiryTime.toString());
         
         isSignedIn = true;
-        console.log('✅ Successfully authenticated');
         
         if (window.gapi && window.gapi.client) {
             window.gapi.client.setToken({ access_token: accessToken });
         }
         
-        hideAuthOverlay();
+        // Hide auth overlay, show app
+        document.getElementById('authOverlay').classList.add('hidden');
+        document.getElementById('app').classList.remove('hidden');
+        
         loadAllData();
     }
 }
@@ -165,13 +175,10 @@ window.addEventListener('load', () => {
     setupEventListeners();
     setupOfflineDetection();
     
-    // Show loading overlay initially
+    // Start with loading overlay visible
     showLoading();
     
-    // Hide loading after a moment (Google auth will handle the rest)
-    setTimeout(() => {
-        hideLoading();
-    }, 2000);
+    // Auth overlay will be shown by checkStoredToken() if needed
 });
 
 // ========================================
@@ -207,7 +214,10 @@ async function loadAllData() {
             accessToken = null;
             isSignedIn = false;
             hideLoading();
-            showAuthOverlay();
+            
+            // Show auth overlay
+            document.getElementById('authOverlay').classList.remove('hidden');
+            document.getElementById('app').classList.add('hidden');
         } else {
             hideLoading();
             alert('Failed to load data: ' + (error.message || 'Unknown error'));
@@ -879,8 +889,10 @@ function hideLoading() {
 
 function showAuthOverlay() {
     document.getElementById('authOverlay').classList.remove('hidden');
+    document.getElementById('app').classList.add('hidden');
 }
 
 function hideAuthOverlay() {
     document.getElementById('authOverlay').classList.add('hidden');
+    document.getElementById('app').classList.remove('hidden');
 }

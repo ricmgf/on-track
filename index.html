@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <meta name="mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="apple-mobile-web-app-title" content="On Track">
@@ -11,9 +11,8 @@
     <link rel="apple-touch-icon" href="favicon.png">
     <link rel="stylesheet" href="styles.css">
     
-    <!-- Load Google Identity Services first -->
-    <script src="https://accounts.google.com/gsi/client" async defer></script>
-    <!-- Load Google API Client -->
+    <!-- Load Google Identity Services with onload callback -->
+    <script src="https://accounts.google.com/gsi/client" async defer onload="initGoogleAuth()"></script>
     <script src="https://apis.google.com/js/api.js" async defer></script>
 </head>
 <body>
@@ -106,12 +105,14 @@
     </div>
 
     <!-- Auth Prompt Overlay -->
-    <div id="authOverlay" class="auth-overlay hidden">
+    <div id="authOverlay" class="auth-overlay">
         <div class="auth-card">
             <div class="auth-icon">🏋️</div>
             <h2>Welcome to On Track</h2>
             <p>Sign in with Google to start tracking your training</p>
-            <button id="signInBtn" class="sign-in-btn">Sign in with Google</button>
+            <button id="signInBtn" class="sign-in-btn" onclick="signIn()" disabled>
+                <span id="signInBtnText">Loading...</span>
+            </button>
         </div>
     </div>
 

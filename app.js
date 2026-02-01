@@ -324,8 +324,8 @@ async function createGoalsSheet() {
                             title: CONFIG.SHEETS.WEEKLY_GOALS
                         }
                     }
-                }
-            }]
+                }]
+            }
         });
     } catch (error) {
         console.log('Sheet might exist:', error.message);

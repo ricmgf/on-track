@@ -18,8 +18,12 @@ let selectedDate = new Date();
 let weekViewMode = 'thisWeek';
 let selectedMonth = new Date();
 
+// Safety flags
+window.gisLoaded = false;
+window.gapiLoaded = false;
+
 // ========================================
-// INITIALIZATION - WAIT FOR ALL SCRIPTS
+// INITIALIZATION WITH TIMEOUT PROTECTION
 // ========================================
 
 window.addEventListener('load', () => {
@@ -33,18 +37,30 @@ window.addEventListener('load', () => {
     
     setupEventListeners();
     setupOfflineDetection();
+    
+    // Start checking for Google scripts with timeout protection
     checkGoogleScriptsLoaded();
+    
+    // Safety timeout: if Google doesn't load in 8 seconds, show auth overlay anyway
+    setTimeout(() => {
+        if (!gapiInited || !gisInited) {
+            console.warn('Google scripts timeout - showing auth overlay anyway');
+            hideLoading();
+            showAuthOverlay();
+        }
+    }, 8000);
 });
 
 function checkGoogleScriptsLoaded() {
     let attempts = 0;
-    const maxAttempts = 50;
+    const maxAttempts = 40; // 8 seconds max
     
     const checkInterval = setInterval(() => {
         attempts++;
         
-        const gapiLoaded = typeof window.gapi !== 'undefined';
-        const gisLoaded = typeof window.google !== 'undefined' && 
+        const gapiLoaded = window.gapiLoaded && typeof window.gapi !== 'undefined';
+        const gisLoaded = window.gisLoaded && 
+                         typeof window.google !== 'undefined' && 
                          typeof window.google.accounts !== 'undefined' &&
                          typeof window.google.accounts.oauth2 !== 'undefined';
         
@@ -58,7 +74,7 @@ function checkGoogleScriptsLoaded() {
             clearInterval(checkInterval);
             console.error('Timeout waiting for Google scripts');
             hideLoading();
-            alert('Failed to load Google services. Please refresh the page.');
+            showAuthOverlay();
         }
     }, 200);
 }
@@ -73,7 +89,7 @@ async function initializeGoogleServices() {
     } catch (error) {
         console.error('Error initializing Google services:', error);
         hideLoading();
-        alert('Failed to initialize Google authentication. Error: ' + error.message);
+        showAuthOverlay();
     }
 }
 
@@ -113,8 +129,12 @@ async function initGoogleIdentityServices() {
                 scope: CONFIG.SCOPES,
                 callback: (response) => {
                     handleAuthResponse(response);
-                    resolve();
                 },
+                error_callback: (error) => {
+                    console.error('Token client error:', error);
+                    hideLoading();
+                    showAuthOverlay();
+                }
             });
             
             gisInited = true;
@@ -133,9 +153,11 @@ async function initGoogleIdentityServices() {
             } else {
                 sessionStorage.removeItem('accessToken');
                 sessionStorage.removeItem('tokenExpiry');
+                console.log('No valid token, showing sign-in screen');
                 hideLoading();
-                console.log('No valid token, requesting new one');
-                requestAccessToken();
+                setTimeout(() => {
+                    showAuthOverlay();
+                }, 300);
                 resolve();
             }
             
@@ -155,10 +177,21 @@ function requestAccessToken() {
     
     try {
         console.log('Requesting access token...');
-        tokenClient.requestAccessToken({ prompt: 'consent' });
+        // Use empty prompt for better mobile compatibility
+        tokenClient.requestAccessToken({ 
+            prompt: '' 
+        });
     } catch (error) {
         console.error('Error requesting access token:', error);
-        alert('Failed to request authentication: ' + error.message);
+        try {
+            console.log('Retrying with consent prompt...');
+            tokenClient.requestAccessToken({ 
+                prompt: 'consent' 
+            });
+        } catch (retryError) {
+            console.error('Retry failed:', retryError);
+            alert('Failed to open authentication window. Please check if popups are blocked.');
+        }
     }
 }
 
@@ -169,6 +202,7 @@ function handleAuthResponse(response) {
         console.error('Auth error:', response);
         alert('Authentication failed: ' + response.error);
         hideLoading();
+        showAuthOverlay();
         return;
     }
     
@@ -185,6 +219,7 @@ function handleAuthResponse(response) {
             window.gapi.client.setToken({ access_token: accessToken });
         }
         
+        hideAuthOverlay();
         loadAllData();
     }
 }
@@ -221,9 +256,10 @@ async function loadAllData() {
             sessionStorage.removeItem('tokenExpiry');
             accessToken = null;
             isSignedIn = false;
-            alert('Session expired. Please sign in again.');
-            requestAccessToken();
+            hideLoading();
+            showAuthOverlay();
         } else {
+            hideLoading();
             alert('Failed to load data: ' + (error.message || 'Unknown error'));
         }
     } finally {
@@ -245,7 +281,6 @@ async function initializeSheets() {
             console.log('Creating Log sheet...');
             await createLogSheet();
         } else {
-            // Check if Log sheet has headers
             const logCheck = await window.gapi.client.sheets.spreadsheets.values.get({
                 spreadsheetId: CONFIG.SPREADSHEET_ID,
                 range: `${CONFIG.SHEETS.LOG}!A1:J1`
@@ -260,7 +295,6 @@ async function initializeSheets() {
             console.log('Creating WeeklyGoals sheet...');
             await createGoalsSheet();
         } else {
-            // Check if Goals sheet has data
             const goalsCheck = await window.gapi.client.sheets.spreadsheets.values.get({
                 spreadsheetId: CONFIG.SPREADSHEET_ID,
                 range: `${CONFIG.SHEETS.WEEKLY_GOALS}!A1:B1`
@@ -475,6 +509,18 @@ async function saveGoalData(activity, weeklyTarget) {
 // ========================================
 
 function setupEventListeners() {
+    // Sign in button
+    const signInBtn = document.getElementById('signInBtn');
+    if (signInBtn) {
+        signInBtn.addEventListener('click', () => {
+            console.log('Sign in button clicked');
+            hideAuthOverlay();
+            showLoading();
+            requestAccessToken();
+        });
+    }
+    
+    // Bottom navigation
     document.querySelectorAll('.nav-item').forEach(btn => {
         btn.addEventListener('click', (e) => {
             e.preventDefault();
@@ -483,6 +529,7 @@ function setupEventListeners() {
         });
     });
     
+    // Daily date picker
     document.getElementById('dailyDatePicker').addEventListener('change', (e) => {
         const dateValue = e.target.value;
         if (dateValue) {
@@ -492,6 +539,7 @@ function setupEventListeners() {
         }
     });
     
+    // Week toggle
     document.getElementById('thisWeekBtn').addEventListener('click', () => {
         weekViewMode = 'thisWeek';
         document.getElementById('thisWeekBtn').classList.add('active');
@@ -506,6 +554,7 @@ function setupEventListeners() {
         renderWeekView();
     });
     
+    // Month navigation
     document.getElementById('prevMonthBtn').addEventListener('click', () => {
         selectedMonth.setMonth(selectedMonth.getMonth() - 1);
         renderMonthView();
@@ -751,9 +800,8 @@ function renderMonthView() {
         const monthlyTarget = Math.round(weeklyTarget * (daysInMonth / 7));
         const done = monthData[activity.column] || 0;
         
-        // Only show green if target > 0 AND done >= target
         const isOnTrack = monthlyTarget > 0 && done >= monthlyTarget;
-        const showStatus = monthlyTarget > 0; // Only show status if there's a target
+        const showStatus = monthlyTarget > 0;
         
         const item = document.createElement('div');
         item.className = `scorecard-item ${isOnTrack ? 'on-track' : 'behind'}`;
@@ -886,4 +934,12 @@ function showLoading() {
 
 function hideLoading() {
     document.getElementById('loadingOverlay').classList.add('hidden');
+}
+
+function showAuthOverlay() {
+    document.getElementById('authOverlay').classList.remove('hidden');
+}
+
+function hideAuthOverlay() {
+    document.getElementById('authOverlay').classList.add('hidden');
 }

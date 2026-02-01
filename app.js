@@ -2,7 +2,8 @@
 // GLOBAL STATE
 // ========================================
 
-let gapi = null;
+let tokenClient = null;
+let accessToken = null;
 let isSignedIn = false;
 let sheetsData = {
     log: [],
@@ -23,13 +24,37 @@ window.addEventListener('load', () => {
 });
 
 function initializeApp() {
-    // Load Google API
-    const script = document.createElement('script');
-    script.src = 'https://apis.google.com/js/api.js';
-    script.onload = () => {
-        window.gapi.load('client:auth2', initGoogleAPI);
+    showLoading();
+    
+    // Load Google Identity Services
+    const gisScript = document.createElement('script');
+    gisScript.src = 'https://accounts.google.com/gsi/client';
+    gisScript.async = true;
+    gisScript.defer = true;
+    gisScript.onload = initGoogleIdentityServices;
+    gisScript.onerror = () => {
+        console.error('Failed to load Google Identity Services');
+        alert('Failed to load Google authentication. Please check your internet connection.');
+        hideLoading();
     };
-    document.head.appendChild(script);
+    document.head.appendChild(gisScript);
+    
+    // Load Google API Client
+    const gapiScript = document.createElement('script');
+    gapiScript.src = 'https://apis.google.com/js/api.js';
+    gapiScript.async = true;
+    gapiScript.defer = true;
+    gapiScript.onload = () => {
+        if (window.gapi) {
+            window.gapi.load('client', initGapiClient);
+        }
+    };
+    gapiScript.onerror = () => {
+        console.error('Failed to load Google API');
+        alert('Failed to load Google API. Please check your internet connection.');
+        hideLoading();
+    };
+    document.head.appendChild(gapiScript);
     
     // Setup event listeners
     setupEventListeners();
@@ -41,37 +66,103 @@ function initializeApp() {
     document.getElementById('dailyDatePicker').valueAsDate = selectedDate;
 }
 
-async function initGoogleAPI() {
+async function initGapiClient() {
     try {
+        if (!window.gapi || !window.gapi.client) {
+            throw new Error('GAPI client not available');
+        }
+        
         await window.gapi.client.init({
-            clientId: CONFIG.CLIENT_ID,
-            discoveryDocs: CONFIG.DISCOVERY_DOCS,
-            scope: CONFIG.SCOPES
+            discoveryDocs: CONFIG.DISCOVERY_DOCS
         });
         
-        gapi = window.gapi;
-        
-        // Listen for sign-in state changes
-        gapi.auth2.getAuthInstance().isSignedIn.listen(updateSignInStatus);
-        
-        // Handle initial sign-in state
-        updateSignInStatus(gapi.auth2.getAuthInstance().isSignedIn.get());
-        
+        console.log('GAPI client initialized');
     } catch (error) {
-        console.error('Error initializing Google API:', error);
-        alert('Failed to initialize Google API. Please check your configuration.');
+        console.error('Error initializing GAPI client:', error);
+        alert('Failed to initialize Google API client. Please refresh the page.');
         hideLoading();
     }
 }
 
-function updateSignInStatus(signedIn) {
-    isSignedIn = signedIn;
+function initGoogleIdentityServices() {
+    try {
+        if (!window.google || !window.google.accounts || !window.google.accounts.oauth2) {
+            throw new Error('Google Identity Services not available');
+        }
+        
+        // Initialize the token client
+        tokenClient = window.google.accounts.oauth2.initTokenClient({
+            client_id: CONFIG.CLIENT_ID,
+            scope: CONFIG.SCOPES,
+            callback: handleAuthResponse,
+        });
+        
+        console.log('Google Identity Services initialized');
+        
+        // Check if we have a stored token
+        const storedToken = sessionStorage.getItem('accessToken');
+        if (storedToken) {
+            accessToken = storedToken;
+            isSignedIn = true;
+            loadAllData();
+        } else {
+            // Request access token
+            hideLoading();
+            requestAccessToken();
+        }
+        
+    } catch (error) {
+        console.error('Error initializing Google Identity Services:', error);
+        alert('Failed to initialize Google authentication. Please check your configuration.');
+        hideLoading();
+    }
+}
+
+function requestAccessToken() {
+    if (!tokenClient) {
+        console.error('Token client not initialized');
+        return;
+    }
     
-    if (signedIn) {
+    try {
+        // Request an access token
+        tokenClient.requestAccessToken({ prompt: 'consent' });
+    } catch (error) {
+        console.error('Error requesting access token:', error);
+        alert('Failed to request authentication. Please refresh the page.');
+    }
+}
+
+function handleAuthResponse(response) {
+    if (response.error) {
+        console.error('Auth error:', response);
+        alert('Authentication failed. Please try again.');
+        hideLoading();
+        return;
+    }
+    
+    if (response.access_token) {
+        accessToken = response.access_token;
+        sessionStorage.setItem('accessToken', accessToken);
+        isSignedIn = true;
+        
+        // Set the access token for GAPI
+        if (window.gapi && window.gapi.client) {
+            window.gapi.client.setToken({ access_token: accessToken });
+        }
+        
         loadAllData();
-    } else {
-        // Prompt sign-in
-        gapi.auth2.getAuthInstance().signIn();
+    }
+}
+
+function revokeToken() {
+    if (accessToken) {
+        window.google.accounts.oauth2.revoke(accessToken, () => {
+            console.log('Token revoked');
+        });
+        accessToken = null;
+        sessionStorage.removeItem('accessToken');
+        isSignedIn = false;
     }
 }
 
@@ -83,6 +174,17 @@ async function loadAllData() {
     showLoading();
     
     try {
+        // Wait for GAPI client to be ready
+        if (!window.gapi || !window.gapi.client || !window.gapi.client.sheets) {
+            await new Promise(resolve => setTimeout(resolve, 1000));
+            if (!window.gapi || !window.gapi.client || !window.gapi.client.sheets) {
+                throw new Error('Google Sheets API not ready');
+            }
+        }
+        
+        // Set the access token
+        window.gapi.client.setToken({ access_token: accessToken });
+        
         // Initialize sheets if needed
         await initializeSheets();
         
@@ -97,7 +199,17 @@ async function loadAllData() {
         
     } catch (error) {
         console.error('Error loading data:', error);
-        alert('Failed to load data from Google Sheets.');
+        
+        // If it's an auth error, request new token
+        if (error.status === 401 || error.status === 403) {
+            sessionStorage.removeItem('accessToken');
+            accessToken = null;
+            isSignedIn = false;
+            alert('Session expired. Please sign in again.');
+            requestAccessToken();
+        } else {
+            alert('Failed to load data from Google Sheets. Error: ' + (error.message || 'Unknown error'));
+        }
     } finally {
         hideLoading();
     }
@@ -106,7 +218,7 @@ async function loadAllData() {
 async function initializeSheets() {
     try {
         // Check if sheets exist, create if not
-        const response = await gapi.client.sheets.spreadsheets.get({
+        const response = await window.gapi.client.sheets.spreadsheets.get({
             spreadsheetId: CONFIG.SPREADSHEET_ID
         });
         
@@ -131,7 +243,7 @@ async function initializeSheets() {
 async function createLogSheet() {
     const headers = ['Date', 'UpperBody', 'LowerBody', 'Zone2', 'VO2Max', 'Walk', 'SportDay', 'Sauna', 'ColdPlunge', 'RestDay'];
     
-    await gapi.client.sheets.spreadsheets.batchUpdate({
+    await window.gapi.client.sheets.spreadsheets.batchUpdate({
         spreadsheetId: CONFIG.SPREADSHEET_ID,
         resource: {
             requests: [{
@@ -144,7 +256,7 @@ async function createLogSheet() {
         }
     });
     
-    await gapi.client.sheets.spreadsheets.values.update({
+    await window.gapi.client.sheets.spreadsheets.values.update({
         spreadsheetId: CONFIG.SPREADSHEET_ID,
         range: `${CONFIG.SHEETS.LOG}!A1:J1`,
         valueInputOption: 'RAW',
@@ -158,7 +270,7 @@ async function createGoalsSheet() {
     const headers = ['Activity', 'WeeklyTarget'];
     const defaultGoals = ACTIVITIES.map(a => [a.column, 0]);
     
-    await gapi.client.sheets.spreadsheets.batchUpdate({
+    await window.gapi.client.sheets.spreadsheets.batchUpdate({
         spreadsheetId: CONFIG.SPREADSHEET_ID,
         resource: {
             requests: [{
@@ -171,7 +283,7 @@ async function createGoalsSheet() {
         }
     });
     
-    await gapi.client.sheets.spreadsheets.values.update({
+    await window.gapi.client.sheets.spreadsheets.values.update({
         spreadsheetId: CONFIG.SPREADSHEET_ID,
         range: `${CONFIG.SHEETS.WEEKLY_GOALS}!A1:B${defaultGoals.length + 1}`,
         valueInputOption: 'RAW',
@@ -182,7 +294,7 @@ async function createGoalsSheet() {
 }
 
 async function loadLogData() {
-    const response = await gapi.client.sheets.spreadsheets.values.get({
+    const response = await window.gapi.client.sheets.spreadsheets.values.get({
         spreadsheetId: CONFIG.SPREADSHEET_ID,
         range: `${CONFIG.SHEETS.LOG}!A2:J`
     });
@@ -203,7 +315,7 @@ async function loadLogData() {
 }
 
 async function loadGoalsData() {
-    const response = await gapi.client.sheets.spreadsheets.values.get({
+    const response = await window.gapi.client.sheets.spreadsheets.values.get({
         spreadsheetId: CONFIG.SPREADSHEET_ID,
         range: `${CONFIG.SHEETS.WEEKLY_GOALS}!A2:B`
     });
@@ -239,7 +351,7 @@ async function saveDayData(date, activities) {
     
     if (rowIndex >= 0) {
         // Update existing row
-        await gapi.client.sheets.spreadsheets.values.update({
+        await window.gapi.client.sheets.spreadsheets.values.update({
             spreadsheetId: CONFIG.SPREADSHEET_ID,
             range: `${CONFIG.SHEETS.LOG}!A${rowIndex + 2}:J${rowIndex + 2}`,
             valueInputOption: 'RAW',
@@ -254,7 +366,7 @@ async function saveDayData(date, activities) {
         };
     } else {
         // Append new row
-        await gapi.client.sheets.spreadsheets.values.append({
+        await window.gapi.client.sheets.spreadsheets.values.append({
             spreadsheetId: CONFIG.SPREADSHEET_ID,
             range: `${CONFIG.SHEETS.LOG}!A:J`,
             valueInputOption: 'RAW',
@@ -273,7 +385,7 @@ async function saveDayData(date, activities) {
 
 async function saveGoalData(activity, weeklyTarget) {
     // Find row index for this activity
-    const response = await gapi.client.sheets.spreadsheets.values.get({
+    const response = await window.gapi.client.sheets.spreadsheets.values.get({
         spreadsheetId: CONFIG.SPREADSHEET_ID,
         range: `${CONFIG.SHEETS.WEEKLY_GOALS}!A2:A`
     });
@@ -282,7 +394,7 @@ async function saveGoalData(activity, weeklyTarget) {
     const rowIndex = activities.indexOf(activity);
     
     if (rowIndex >= 0) {
-        await gapi.client.sheets.spreadsheets.values.update({
+        await window.gapi.client.sheets.spreadsheets.values.update({
             spreadsheetId: CONFIG.SPREADSHEET_ID,
             range: `${CONFIG.SHEETS.WEEKLY_GOALS}!B${rowIndex + 2}`,
             valueInputOption: 'RAW',
@@ -444,7 +556,7 @@ function renderDailyView() {
 }
 
 function toggleActivity(activityId, dateStr) {
-    if (!navigator.onLine) return;
+    if (!navigator.onLine || !isSignedIn) return;
     
     const activity = ACTIVITIES.find(a => a.id === activityId);
     const dayData = getDayData(dateStr);
@@ -701,7 +813,7 @@ function renderGoalsView() {
 }
 
 async function updateGoal(activityColumn, newValue) {
-    if (!navigator.onLine) return;
+    if (!navigator.onLine || !isSignedIn) return;
     
     await saveGoalData(activityColumn, newValue);
     renderGoalsView();

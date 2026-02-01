@@ -105,6 +105,16 @@
         <p>Loading...</p>
     </div>
 
+    <!-- Auth Prompt Overlay -->
+    <div id="authOverlay" class="auth-overlay hidden">
+        <div class="auth-card">
+            <div class="auth-icon">🏋️</div>
+            <h2>Welcome to On Track</h2>
+            <p>Sign in with Google to start tracking your training</p>
+            <button id="signInBtn" class="sign-in-btn">Sign in with Google</button>
+        </div>
+    </div>
+
     <!-- Load config and app AFTER Google scripts are declared -->
     <script src="config.js"></script>
     <script src="app.js"></script>

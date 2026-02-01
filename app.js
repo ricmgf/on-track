@@ -23,7 +23,7 @@ let selectedMonth = new Date();
 
 // This function is called by the Google script's onload
 window.initGoogleAuth = function() {
-    console.log('🔐 Initializing Google Auth...');
+    console.log('🔐 Google Auth library loaded');
     
     if (typeof google === 'undefined' || !google.accounts) {
         console.log('⏳ Google not ready yet, retrying...');
@@ -31,17 +31,10 @@ window.initGoogleAuth = function() {
         return;
     }
     
-    // Initialize token client with iPhone support
-    tokenClient = google.accounts.oauth2.initTokenClient({
-        client_id: CONFIG.CLIENT_ID,
-        scope: CONFIG.SCOPES,
-        callback: handleAuthResponse,
-        itp_support: true, // Required for iPhone/Safari ITP compatibility
-    });
+    console.log('✅ Google accounts API ready');
     
-    console.log('✅ Token client initialized');
-    
-    // Enable the sign-in button
+    // Just enable the sign-in button
+    // Token client will be created when user clicks
     const btn = document.getElementById('signInBtn');
     const btnText = document.getElementById('signInBtnText');
     if (btn && btnText) {
@@ -108,24 +101,33 @@ function checkStoredToken() {
 function signIn() {
     console.log('🔐 User clicked sign in');
     
+    // Initialize token client RIGHT HERE if it doesn't exist
+    // This ensures it's created as a result of user action
     if (!tokenClient) {
-        console.error('❌ Token client not initialized');
-        alert('Authentication system is still loading. Please wait a moment and try again.');
-        return;
+        console.log('📦 Initializing token client on user click...');
+        
+        if (typeof google === 'undefined' || !google.accounts) {
+            alert('Google services are still loading. Please wait a moment and try again.');
+            return;
+        }
+        
+        tokenClient = google.accounts.oauth2.initTokenClient({
+            client_id: CONFIG.CLIENT_ID,
+            scope: CONFIG.SCOPES,
+            callback: handleAuthResponse,
+            itp_support: true,
+        });
+        
+        console.log('✅ Token client initialized on demand');
     }
     
-    // This is ONLY called when user clicks the button
-    // So Safari/iPhone won't block the popup
+    // Now request token - this is part of the user click event
+    console.log('🚀 Requesting access token...');
     try {
-        tokenClient.requestAccessToken({ prompt: '' });
+        tokenClient.requestAccessToken({ prompt: 'consent' });
     } catch (error) {
         console.error('❌ Error requesting token:', error);
-        try {
-            tokenClient.requestAccessToken({ prompt: 'consent' });
-        } catch (retryError) {
-            console.error('❌ Retry failed:', retryError);
-            alert('Failed to open authentication window. Please check if popups are blocked.');
-        }
+        alert('Failed to open authentication window. Please check if popups are blocked.');
     }
 }
 

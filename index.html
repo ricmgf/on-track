@@ -21,8 +21,8 @@
         Offline — connect to sync
     </div>
 
-    <!-- Main Container -->
-    <div id="app" class="app-container">
+    <!-- Main Container (hidden until authenticated) -->
+    <div id="app" class="app-container app-hidden">
         
         <!-- Daily View -->
         <div id="dailyView" class="view active">
@@ -98,14 +98,14 @@
         </nav>
     </div>
 
-    <!-- Loading Overlay -->
+    <!-- Loading Overlay (visible by default) -->
     <div id="loadingOverlay" class="loading-overlay">
         <div class="spinner"></div>
         <p>Loading...</p>
     </div>
 
-    <!-- Auth Prompt Overlay -->
-    <div id="authOverlay" class="auth-overlay">
+    <!-- Auth Prompt Overlay (hidden by default, shown by JS when needed) -->
+    <div id="authOverlay" class="auth-overlay hidden">
         <div class="auth-card">
             <div class="auth-icon">🏋️</div>
             <h2>Welcome to On Track</h2>

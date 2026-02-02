@@ -24,13 +24,15 @@ function showAuthOverlay() {
     console.log('🔍 DEBUG: Showing auth overlay');
     const authOverlay = document.getElementById('authOverlay');
     const app = document.getElementById('app');
+    const loading = document.getElementById('loadingOverlay');
     
-    if (authOverlay && app) {
+    if (authOverlay && app && loading) {
+        loading.style.display = 'none';  // Hide loading first
         authOverlay.style.display = 'flex';
         app.style.display = 'none';
-        console.log('✅ Auth overlay shown, app hidden');
+        console.log('✅ Auth overlay shown, app hidden, loading hidden');
     } else {
-        console.error('❌ Cannot find authOverlay or app elements');
+        console.error('❌ Cannot find required elements');
     }
 }
 
@@ -38,13 +40,15 @@ function hideAuthOverlay() {
     console.log('🔍 DEBUG: Hiding auth overlay');
     const authOverlay = document.getElementById('authOverlay');
     const app = document.getElementById('app');
+    const loading = document.getElementById('loadingOverlay');
     
-    if (authOverlay && app) {
+    if (authOverlay && app && loading) {
+        loading.style.display = 'none';  // Keep loading hidden
         authOverlay.style.display = 'none';
         app.style.display = 'flex';
         console.log('✅ Auth overlay hidden, app shown');
     } else {
-        console.error('❌ Cannot find authOverlay or app elements');
+        console.error('❌ Cannot find required elements');
     }
 }
 
@@ -118,8 +122,8 @@ function initGapiClient() {
 function checkStoredToken() {
     console.log('🔍 DEBUG: checkStoredToken called');
     
-    const storedToken = sessionStorage.getItem('accessToken');
-    const tokenExpiry = sessionStorage.getItem('tokenExpiry');
+    const storedToken = localStorage.getItem('accessToken');
+    const tokenExpiry = localStorage.getItem('tokenExpiry');
     
     console.log('🔍 DEBUG: About to hide loading...');
     hideLoading();
@@ -135,8 +139,8 @@ function checkStoredToken() {
         loadAllData();
     } else {
         console.log('ℹ️ Please sign in');
-        sessionStorage.removeItem('accessToken');
-        sessionStorage.removeItem('tokenExpiry');
+        localStorage.removeItem('accessToken');
+        localStorage.removeItem('tokenExpiry');
         
         showAuthOverlay();
     }
@@ -172,8 +176,8 @@ function handleAuthResponse(response) {
         console.log('✅ Token received');
         accessToken = response.access_token;
         const expiryTime = Date.now() + (3600 * 1000);
-        sessionStorage.setItem('accessToken', accessToken);
-        sessionStorage.setItem('tokenExpiry', expiryTime.toString());
+        localStorage.setItem('accessToken', accessToken);
+        localStorage.setItem('tokenExpiry', expiryTime.toString());
         
         isSignedIn = true;
         window.gapi.client.setToken({ access_token: accessToken });
@@ -220,8 +224,8 @@ async function loadAllData() {
         
         if (error.status === 401 || error.status === 403) {
             console.log('🔐 Token expired');
-            sessionStorage.removeItem('accessToken');
-            sessionStorage.removeItem('tokenExpiry');
+            localStorage.removeItem('accessToken');
+            localStorage.removeItem('tokenExpiry');
             accessToken = null;
             isSignedIn = false;
             

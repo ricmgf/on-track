@@ -17,6 +17,48 @@ let weekViewMode = 'thisWeek';
 let selectedMonth = new Date();
 
 // ========================================
+// UI CONTROL FUNCTIONS
+// ========================================
+
+function showAuthOverlay() {
+    console.log('🔍 DEBUG: Showing auth overlay');
+    const authOverlay = document.getElementById('authOverlay');
+    const app = document.getElementById('app');
+    
+    if (authOverlay && app) {
+        authOverlay.classList.remove('hidden');
+        app.classList.add('hidden');
+        console.log('✅ Auth overlay shown, app hidden');
+    } else {
+        console.error('❌ Cannot find authOverlay or app elements');
+    }
+}
+
+function hideAuthOverlay() {
+    console.log('🔍 DEBUG: Hiding auth overlay');
+    const authOverlay = document.getElementById('authOverlay');
+    const app = document.getElementById('app');
+    
+    if (authOverlay && app) {
+        authOverlay.classList.add('hidden');
+        app.classList.remove('hidden');
+        console.log('✅ Auth overlay hidden, app shown');
+    } else {
+        console.error('❌ Cannot find authOverlay or app elements');
+    }
+}
+
+function showLoading() {
+    const loading = document.getElementById('loadingOverlay');
+    if (loading) loading.classList.remove('hidden');
+}
+
+function hideLoading() {
+    const loading = document.getElementById('loadingOverlay');
+    if (loading) loading.classList.add('hidden');
+}
+
+// ========================================
 // GOOGLE AUTH INITIALIZATION
 // ========================================
 
@@ -70,25 +112,14 @@ function checkStoredToken() {
         isSignedIn = true;
         window.gapi.client.setToken({ access_token: accessToken });
         
-        document.getElementById('authOverlay').classList.add('hidden');
-        document.getElementById('app').classList.remove('hidden');
-        
+        hideAuthOverlay();
         loadAllData();
     } else {
         console.log('ℹ️ Please sign in');
         sessionStorage.removeItem('accessToken');
         sessionStorage.removeItem('tokenExpiry');
         
-        // Show auth overlay, hide app
-        console.log('🔍 DEBUG: About to show auth overlay...');
-        console.log('🔍 authOverlay element:', document.getElementById('authOverlay'));
-        console.log('🔍 app element:', document.getElementById('app'));
-        
-        document.getElementById('authOverlay').classList.remove('hidden');
-        document.getElementById('app').classList.add('hidden');
-        
-        console.log('🔍 DEBUG: Auth overlay classes:', document.getElementById('authOverlay').className);
-        console.log('🔍 DEBUG: App classes:', document.getElementById('app').className);
+        showAuthOverlay();
     }
 }
 
@@ -140,9 +171,7 @@ function handleAuthResponse(response) {
         isSignedIn = true;
         window.gapi.client.setToken({ access_token: accessToken });
         
-        document.getElementById('authOverlay').classList.add('hidden');
-        document.getElementById('app').classList.remove('hidden');
-        
+        hideAuthOverlay();
         loadAllData();
     }
 }
@@ -189,8 +218,7 @@ async function loadAllData() {
             accessToken = null;
             isSignedIn = false;
             
-            document.getElementById('authOverlay').classList.remove('hidden');
-            document.getElementById('app').classList.add('hidden');
+            showAuthOverlay();
         } else {
             alert('Failed to load data: ' + (error.message || 'Unknown error'));
         }
@@ -712,12 +740,4 @@ function formatDayDate(date) {
 
 function formatMonthYear(date) {
     return date.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
-}
-
-function showLoading() {
-    document.getElementById('loadingOverlay').classList.remove('hidden');
-}
-
-function hideLoading() {
-    document.getElementById('loadingOverlay').classList.add('hidden');
 }

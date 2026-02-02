@@ -26,8 +26,8 @@ function showAuthOverlay() {
     const app = document.getElementById('app');
     
     if (authOverlay && app) {
-        authOverlay.classList.remove('hidden');
-        app.classList.add('hidden');
+        authOverlay.style.display = 'flex';
+        app.style.display = 'none';
         console.log('✅ Auth overlay shown, app hidden');
     } else {
         console.error('❌ Cannot find authOverlay or app elements');
@@ -40,8 +40,8 @@ function hideAuthOverlay() {
     const app = document.getElementById('app');
     
     if (authOverlay && app) {
-        authOverlay.classList.add('hidden');
-        app.classList.remove('hidden');
+        authOverlay.style.display = 'none';
+        app.style.display = 'flex';
         console.log('✅ Auth overlay hidden, app shown');
     } else {
         console.error('❌ Cannot find authOverlay or app elements');
@@ -50,14 +50,14 @@ function hideAuthOverlay() {
 
 function showLoading() {
     const loading = document.getElementById('loadingOverlay');
-    if (loading) loading.classList.remove('hidden');
+    if (loading) loading.style.display = 'flex';
 }
 
 function hideLoading() {
     const loading = document.getElementById('loadingOverlay');
     if (loading) {
-        loading.classList.add('hidden');
-        console.log('🔍 DEBUG: Loading hidden. Classes:', loading.className);
+        loading.style.display = 'none';
+        console.log('🔍 DEBUG: Loading hidden');
     } else {
         console.error('❌ Loading overlay element not found');
     }
@@ -77,7 +77,17 @@ window.initGoogleAuth = function() {
     
     console.log('✅ Google ready');
     
-    // Enable button
+    // STEP 1: Initialize tokenClient
+    tokenClient = google.accounts.oauth2.initTokenClient({
+        client_id: CONFIG.CLIENT_ID,
+        scope: CONFIG.SCOPES,
+        callback: handleAuthResponse,
+        itp_support: true,
+    });
+    
+    console.log('✅ Token client initialized');
+    
+    // STEP 2: Enable button
     const btn = document.getElementById('signInBtn');
     const btnText = document.getElementById('signInBtnText');
     if (btn && btnText) {
@@ -85,7 +95,7 @@ window.initGoogleAuth = function() {
         btnText.textContent = 'Sign in with Google';
     }
     
-    // Initialize GAPI
+    // STEP 3: Initialize GAPI client
     initGapiClient();
 };
 
@@ -140,21 +150,9 @@ function signIn() {
     console.log('🔐 User clicked sign in');
     
     if (!tokenClient) {
-        console.log('📦 Creating token client...');
-        
-        if (typeof google === 'undefined' || !google.accounts) {
-            alert('Google services are still loading. Please wait a moment and try again.');
-            return;
-        }
-        
-        tokenClient = google.accounts.oauth2.initTokenClient({
-            client_id: CONFIG.CLIENT_ID,
-            scope: CONFIG.SCOPES,
-            callback: handleAuthResponse,
-            itp_support: true,
-        });
-        
-        console.log('✅ Token client created');
+        console.error('❌ Token client not initialized');
+        alert('Authentication system is still loading. Please wait a moment and try again.');
+        return;
     }
     
     console.log('🚀 Requesting access...');

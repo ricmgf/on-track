@@ -55,7 +55,12 @@ function showLoading() {
 
 function hideLoading() {
     const loading = document.getElementById('loadingOverlay');
-    if (loading) loading.classList.add('hidden');
+    if (loading) {
+        loading.classList.add('hidden');
+        console.log('🔍 DEBUG: Loading hidden. Classes:', loading.className);
+    } else {
+        console.error('❌ Loading overlay element not found');
+    }
 }
 
 // ========================================

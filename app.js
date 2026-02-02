@@ -5,7 +5,6 @@
 let tokenClient = null;
 let accessToken = null;
 let isSignedIn = false;
-let gapiInited = false;
 
 let sheetsData = {
     log: [],
@@ -21,20 +20,17 @@ let selectedMonth = new Date();
 // GOOGLE AUTH INITIALIZATION
 // ========================================
 
-// This function is called by the Google script's onload
 window.initGoogleAuth = function() {
-    console.log('🔐 Google Auth library loaded');
+    console.log('🔐 Initializing Google Auth...');
     
     if (typeof google === 'undefined' || !google.accounts) {
-        console.log('⏳ Google not ready yet, retrying...');
         setTimeout(window.initGoogleAuth, 500);
         return;
     }
     
-    console.log('✅ Google accounts API ready');
+    console.log('✅ Google ready');
     
-    // Just enable the sign-in button
-    // Token client will be created when user clicks
+    // Enable button
     const btn = document.getElementById('signInBtn');
     const btnText = document.getElementById('signInBtnText');
     if (btn && btnText) {
@@ -42,29 +38,23 @@ window.initGoogleAuth = function() {
         btnText.textContent = 'Sign in with Google';
     }
     
-    // Initialize GAPI client
+    // Initialize GAPI
     initGapiClient();
 };
 
-async function initGapiClient() {
+function initGapiClient() {
     if (typeof window.gapi === 'undefined') {
         setTimeout(initGapiClient, 500);
         return;
     }
     
     window.gapi.load('client', async () => {
-        try {
-            await window.gapi.client.init({
-                discoveryDocs: CONFIG.DISCOVERY_DOCS
-            });
-            gapiInited = true;
-            console.log('✅ GAPI client initialized');
-            
-            // Check for stored token
-            checkStoredToken();
-        } catch (error) {
-            console.error('❌ Error initializing GAPI:', error);
-        }
+        await window.gapi.client.init({
+            discoveryDocs: CONFIG.DISCOVERY_DOCS
+        });
+        console.log('✅ GAPI ready');
+        
+        checkStoredToken();
     });
 }
 
@@ -72,39 +62,34 @@ function checkStoredToken() {
     const storedToken = sessionStorage.getItem('accessToken');
     const tokenExpiry = sessionStorage.getItem('tokenExpiry');
     
+    hideLoading();
+    
     if (storedToken && tokenExpiry && Date.now() < parseInt(tokenExpiry)) {
         console.log('✅ Using stored token');
         accessToken = storedToken;
         isSignedIn = true;
         window.gapi.client.setToken({ access_token: accessToken });
         
-        // Hide auth, show app
-        hideLoading();
         document.getElementById('authOverlay').classList.add('hidden');
         document.getElementById('app').classList.remove('hidden');
         
         loadAllData();
     } else {
-        console.log('ℹ️ No valid stored token, showing sign-in screen');
+        console.log('ℹ️ Please sign in');
         sessionStorage.removeItem('accessToken');
         sessionStorage.removeItem('tokenExpiry');
-        
-        // Hide loading, auth overlay is already visible
-        hideLoading();
     }
 }
 
 // ========================================
-// SIGN IN (CALLED BY USER CLICK)
+// SIGN IN
 // ========================================
 
 function signIn() {
     console.log('🔐 User clicked sign in');
     
-    // Initialize token client RIGHT HERE if it doesn't exist
-    // This ensures it's created as a result of user action
     if (!tokenClient) {
-        console.log('📦 Initializing token client on user click...');
+        console.log('📦 Creating token client...');
         
         if (typeof google === 'undefined' || !google.accounts) {
             alert('Google services are still loading. Please wait a moment and try again.');
@@ -118,17 +103,11 @@ function signIn() {
             itp_support: true,
         });
         
-        console.log('✅ Token client initialized on demand');
+        console.log('✅ Token client created');
     }
     
-    // Now request token - this is part of the user click event
-    console.log('🚀 Requesting access token...');
-    try {
-        tokenClient.requestAccessToken({ prompt: 'consent' });
-    } catch (error) {
-        console.error('❌ Error requesting token:', error);
-        alert('Failed to open authentication window. Please check if popups are blocked.');
-    }
+    console.log('🚀 Requesting access...');
+    tokenClient.requestAccessToken({ prompt: 'consent' });
 }
 
 function handleAuthResponse(response) {
@@ -148,12 +127,8 @@ function handleAuthResponse(response) {
         sessionStorage.setItem('tokenExpiry', expiryTime.toString());
         
         isSignedIn = true;
+        window.gapi.client.setToken({ access_token: accessToken });
         
-        if (window.gapi && window.gapi.client) {
-            window.gapi.client.setToken({ access_token: accessToken });
-        }
-        
-        // Hide auth overlay, show app
         document.getElementById('authOverlay').classList.add('hidden');
         document.getElementById('app').classList.remove('hidden');
         
@@ -162,66 +137,50 @@ function handleAuthResponse(response) {
 }
 
 // ========================================
-// INITIALIZATION
+// PAGE INITIALIZATION
 // ========================================
 
 window.addEventListener('load', () => {
-    console.log('📱 App loaded, starting initialization...');
+    console.log('📱 App loaded');
     
-    // Set today's date
     const today = new Date();
-    const dateStr = today.toISOString().split('T')[0];
-    document.getElementById('dailyDatePicker').value = dateStr;
+    document.getElementById('dailyDatePicker').value = today.toISOString().split('T')[0];
     selectedDate = today;
     
     setupEventListeners();
     setupOfflineDetection();
-    
-    // Start with loading overlay visible
-    showLoading();
-    
-    // Auth overlay will be shown by checkStoredToken() if needed
 });
 
 // ========================================
-// DATA LOADING & SYNCING
+// DATA LOADING
 // ========================================
 
 async function loadAllData() {
     showLoading();
     
     try {
-        console.log('📊 Loading all data...');
-        
-        if (!gapiInited || !window.gapi || !window.gapi.client) {
-            throw new Error('GAPI client not ready');
-        }
-        
-        window.gapi.client.setToken({ access_token: accessToken });
+        console.log('📊 Loading data...');
         
         await initializeSheets();
         await loadLogData();
         await loadGoalsData();
         
-        console.log('✅ Data loaded successfully');
+        console.log('✅ Data loaded');
         renderCurrentView();
         
     } catch (error) {
-        console.error('❌ Error loading data:', error);
+        console.error('❌ Error:', error);
         
         if (error.status === 401 || error.status === 403) {
-            console.log('🔐 Token expired, showing sign-in screen');
+            console.log('🔐 Token expired');
             sessionStorage.removeItem('accessToken');
             sessionStorage.removeItem('tokenExpiry');
             accessToken = null;
             isSignedIn = false;
-            hideLoading();
             
-            // Show auth overlay
             document.getElementById('authOverlay').classList.remove('hidden');
             document.getElementById('app').classList.add('hidden');
         } else {
-            hideLoading();
             alert('Failed to load data: ' + (error.message || 'Unknown error'));
         }
     } finally {
@@ -230,46 +189,18 @@ async function loadAllData() {
 }
 
 async function initializeSheets() {
-    try {
-        console.log('📋 Checking sheets...');
-        const response = await window.gapi.client.sheets.spreadsheets.get({
-            spreadsheetId: CONFIG.SPREADSHEET_ID
-        });
-        
-        const sheets = response.result.sheets.map(s => s.properties.title);
-        console.log('📋 Existing sheets:', sheets);
-        
-        if (!sheets.includes(CONFIG.SHEETS.LOG)) {
-            console.log('➕ Creating Log sheet...');
-            await createLogSheet();
-        } else {
-            const logCheck = await window.gapi.client.sheets.spreadsheets.values.get({
-                spreadsheetId: CONFIG.SPREADSHEET_ID,
-                range: `${CONFIG.SHEETS.LOG}!A1:J1`
-            });
-            if (!logCheck.result.values || logCheck.result.values.length === 0) {
-                console.log('➕ Adding Log sheet headers...');
-                await addLogHeaders();
-            }
-        }
-        
-        if (!sheets.includes(CONFIG.SHEETS.WEEKLY_GOALS)) {
-            console.log('➕ Creating WeeklyGoals sheet...');
-            await createGoalsSheet();
-        } else {
-            const goalsCheck = await window.gapi.client.sheets.spreadsheets.values.get({
-                spreadsheetId: CONFIG.SPREADSHEET_ID,
-                range: `${CONFIG.SHEETS.WEEKLY_GOALS}!A1:B1`
-            });
-            if (!goalsCheck.result.values || goalsCheck.result.values.length === 0) {
-                console.log('➕ Adding Goals sheet headers...');
-                await addGoalsHeaders();
-            }
-        }
-        
-    } catch (error) {
-        console.error('❌ Error initializing sheets:', error);
-        throw error;
+    const response = await window.gapi.client.sheets.spreadsheets.get({
+        spreadsheetId: CONFIG.SPREADSHEET_ID
+    });
+    
+    const sheets = response.result.sheets.map(s => s.properties.title);
+    
+    if (!sheets.includes(CONFIG.SHEETS.LOG)) {
+        await createLogSheet();
+    }
+    
+    if (!sheets.includes(CONFIG.SHEETS.WEEKLY_GOALS)) {
+        await createGoalsSheet();
     }
 }
 
@@ -280,33 +211,22 @@ async function createLogSheet() {
             resource: {
                 requests: [{
                     addSheet: {
-                        properties: {
-                            title: CONFIG.SHEETS.LOG
-                        }
+                        properties: { title: CONFIG.SHEETS.LOG }
                     }
                 }]
             }
         });
     } catch (error) {
-        console.log('ℹ️ Sheet might exist:', error.message);
+        // Sheet might exist
     }
     
-    await addLogHeaders();
-}
-
-async function addLogHeaders() {
     const headers = ['Date', 'UpperBody', 'LowerBody', 'Zone2', 'VO2Max', 'Walk', 'SportDay', 'Sauna', 'ColdPlunge', 'RestDay'];
-    
     await window.gapi.client.sheets.spreadsheets.values.update({
         spreadsheetId: CONFIG.SPREADSHEET_ID,
         range: `${CONFIG.SHEETS.LOG}!A1:J1`,
         valueInputOption: 'RAW',
-        resource: {
-            values: [headers]
-        }
+        resource: { values: [headers] }
     });
-    
-    console.log('✅ Log sheet headers added');
 }
 
 async function createGoalsSheet() {
@@ -316,21 +236,15 @@ async function createGoalsSheet() {
             resource: {
                 requests: [{
                     addSheet: {
-                        properties: {
-                            title: CONFIG.SHEETS.WEEKLY_GOALS
-                        }
+                        properties: { title: CONFIG.SHEETS.WEEKLY_GOALS }
                     }
                 }]
             }
         });
     } catch (error) {
-        console.log('ℹ️ Sheet might exist:', error.message);
+        // Sheet might exist
     }
     
-    await addGoalsHeaders();
-}
-
-async function addGoalsHeaders() {
     const headers = ['Activity', 'WeeklyTarget'];
     const defaultGoals = ACTIVITIES.map(a => [a.column, 0]);
     
@@ -338,16 +252,11 @@ async function addGoalsHeaders() {
         spreadsheetId: CONFIG.SPREADSHEET_ID,
         range: `${CONFIG.SHEETS.WEEKLY_GOALS}!A1:B${defaultGoals.length + 1}`,
         valueInputOption: 'RAW',
-        resource: {
-            values: [headers, ...defaultGoals]
-        }
+        resource: { values: [headers, ...defaultGoals] }
     });
-    
-    console.log('✅ WeeklyGoals sheet created');
 }
 
 async function loadLogData() {
-    console.log('📊 Loading log data...');
     const response = await window.gapi.client.sheets.spreadsheets.values.get({
         spreadsheetId: CONFIG.SPREADSHEET_ID,
         range: `${CONFIG.SHEETS.LOG}!A2:J`
@@ -366,12 +275,9 @@ async function loadLogData() {
         ColdPlunge: row[8] === 'TRUE',
         RestDay: row[9] === 'TRUE'
     }));
-    
-    console.log(`✅ Loaded ${sheetsData.log.length} log entries`);
 }
 
 async function loadGoalsData() {
-    console.log('🎯 Loading goals data...');
     const response = await window.gapi.client.sheets.spreadsheets.values.get({
         spreadsheetId: CONFIG.SPREADSHEET_ID,
         range: `${CONFIG.SHEETS.WEEKLY_GOALS}!A2:B`
@@ -381,89 +287,66 @@ async function loadGoalsData() {
     sheetsData.goals = {};
     
     rows.forEach(row => {
-        const activity = row[0];
-        const target = parseInt(row[1]) || 0;
-        sheetsData.goals[activity] = target;
+        sheetsData.goals[row[0]] = parseInt(row[1]) || 0;
     });
-    
-    console.log('✅ Goals loaded:', sheetsData.goals);
 }
 
 async function saveDayData(date, activities) {
-    try {
-        const dateStr = formatDateForSheets(date);
-        console.log('💾 Saving data for:', dateStr);
-        
-        const rowIndex = sheetsData.log.findIndex(entry => entry.date === dateStr);
-        
-        const rowData = [
-            dateStr,
-            activities.UpperBody ? 'TRUE' : 'FALSE',
-            activities.LowerBody ? 'TRUE' : 'FALSE',
-            activities.Zone2 ? 'TRUE' : 'FALSE',
-            activities.VO2Max ? 'TRUE' : 'FALSE',
-            activities.Walk ? 'TRUE' : 'FALSE',
-            activities.SportDay ? 'TRUE' : 'FALSE',
-            activities.Sauna ? 'TRUE' : 'FALSE',
-            activities.ColdPlunge ? 'TRUE' : 'FALSE',
-            activities.RestDay ? 'TRUE' : 'FALSE'
-        ];
-        
-        if (rowIndex >= 0) {
-            await window.gapi.client.sheets.spreadsheets.values.update({
-                spreadsheetId: CONFIG.SPREADSHEET_ID,
-                range: `${CONFIG.SHEETS.LOG}!A${rowIndex + 2}:J${rowIndex + 2}`,
-                valueInputOption: 'RAW',
-                resource: { values: [rowData] }
-            });
-            
-            sheetsData.log[rowIndex] = { date: dateStr, ...activities };
-        } else {
-            await window.gapi.client.sheets.spreadsheets.values.append({
-                spreadsheetId: CONFIG.SPREADSHEET_ID,
-                range: `${CONFIG.SHEETS.LOG}!A:J`,
-                valueInputOption: 'RAW',
-                insertDataOption: 'INSERT_ROWS',
-                resource: { values: [rowData] }
-            });
-            
-            sheetsData.log.push({ date: dateStr, ...activities });
-        }
-        
-        console.log('✅ Data saved successfully');
-    } catch (error) {
-        console.error('❌ Error saving data:', error);
-        alert('Failed to save: ' + error.message);
+    const dateStr = formatDateForSheets(date);
+    const rowIndex = sheetsData.log.findIndex(entry => entry.date === dateStr);
+    
+    const rowData = [
+        dateStr,
+        activities.UpperBody ? 'TRUE' : 'FALSE',
+        activities.LowerBody ? 'TRUE' : 'FALSE',
+        activities.Zone2 ? 'TRUE' : 'FALSE',
+        activities.VO2Max ? 'TRUE' : 'FALSE',
+        activities.Walk ? 'TRUE' : 'FALSE',
+        activities.SportDay ? 'TRUE' : 'FALSE',
+        activities.Sauna ? 'TRUE' : 'FALSE',
+        activities.ColdPlunge ? 'TRUE' : 'FALSE',
+        activities.RestDay ? 'TRUE' : 'FALSE'
+    ];
+    
+    if (rowIndex >= 0) {
+        await window.gapi.client.sheets.spreadsheets.values.update({
+            spreadsheetId: CONFIG.SPREADSHEET_ID,
+            range: `${CONFIG.SHEETS.LOG}!A${rowIndex + 2}:J${rowIndex + 2}`,
+            valueInputOption: 'RAW',
+            resource: { values: [rowData] }
+        });
+        sheetsData.log[rowIndex] = { date: dateStr, ...activities };
+    } else {
+        await window.gapi.client.sheets.spreadsheets.values.append({
+            spreadsheetId: CONFIG.SPREADSHEET_ID,
+            range: `${CONFIG.SHEETS.LOG}!A:J`,
+            valueInputOption: 'RAW',
+            insertDataOption: 'INSERT_ROWS',
+            resource: { values: [rowData] }
+        });
+        sheetsData.log.push({ date: dateStr, ...activities });
     }
 }
 
 async function saveGoalData(activity, weeklyTarget) {
-    try {
-        console.log('💾 Saving goal:', activity, weeklyTarget);
-        
-        const response = await window.gapi.client.sheets.spreadsheets.values.get({
+    const response = await window.gapi.client.sheets.spreadsheets.values.get({
+        spreadsheetId: CONFIG.SPREADSHEET_ID,
+        range: `${CONFIG.SHEETS.WEEKLY_GOALS}!A2:A`
+    });
+    
+    const activities = (response.result.values || []).map(row => row[0]);
+    const rowIndex = activities.indexOf(activity);
+    
+    if (rowIndex >= 0) {
+        await window.gapi.client.sheets.spreadsheets.values.update({
             spreadsheetId: CONFIG.SPREADSHEET_ID,
-            range: `${CONFIG.SHEETS.WEEKLY_GOALS}!A2:A`
+            range: `${CONFIG.SHEETS.WEEKLY_GOALS}!B${rowIndex + 2}`,
+            valueInputOption: 'RAW',
+            resource: { values: [[weeklyTarget]] }
         });
-        
-        const activities = (response.result.values || []).map(row => row[0]);
-        const rowIndex = activities.indexOf(activity);
-        
-        if (rowIndex >= 0) {
-            await window.gapi.client.sheets.spreadsheets.values.update({
-                spreadsheetId: CONFIG.SPREADSHEET_ID,
-                range: `${CONFIG.SHEETS.WEEKLY_GOALS}!B${rowIndex + 2}`,
-                valueInputOption: 'RAW',
-                resource: { values: [[weeklyTarget]] }
-            });
-        }
-        
-        sheetsData.goals[activity] = weeklyTarget;
-        console.log('✅ Goal saved successfully');
-    } catch (error) {
-        console.error('❌ Error saving goal:', error);
-        alert('Failed to save goal: ' + error.message);
     }
+    
+    sheetsData.goals[activity] = weeklyTarget;
 }
 
 // ========================================
@@ -471,26 +354,20 @@ async function saveGoalData(activity, weeklyTarget) {
 // ========================================
 
 function setupEventListeners() {
-    // Bottom navigation
     document.querySelectorAll('.nav-item').forEach(btn => {
         btn.addEventListener('click', (e) => {
             e.preventDefault();
-            const targetView = btn.dataset.view;
-            switchView(targetView);
+            switchView(btn.dataset.view);
         });
     });
     
-    // Daily date picker
     document.getElementById('dailyDatePicker').addEventListener('change', (e) => {
-        const dateValue = e.target.value;
-        if (dateValue) {
-            selectedDate = new Date(dateValue + 'T00:00:00');
-            console.log('📅 Date changed to:', selectedDate);
+        if (e.target.value) {
+            selectedDate = new Date(e.target.value + 'T00:00:00');
             renderDailyView();
         }
     });
     
-    // Week toggle
     document.getElementById('thisWeekBtn').addEventListener('click', () => {
         weekViewMode = 'thisWeek';
         document.getElementById('thisWeekBtn').classList.add('active');
@@ -505,7 +382,6 @@ function setupEventListeners() {
         renderWeekView();
     });
     
-    // Month navigation
     document.getElementById('prevMonthBtn').addEventListener('click', () => {
         selectedMonth.setMonth(selectedMonth.getMonth() - 1);
         renderMonthView();
@@ -534,7 +410,7 @@ function setupOfflineDetection() {
 }
 
 // ========================================
-// VIEW SWITCHING
+// VIEW RENDERING
 // ========================================
 
 function switchView(viewId) {
@@ -559,10 +435,6 @@ function renderCurrentView() {
     }
 }
 
-// ========================================
-// DAILY VIEW
-// ========================================
-
 function renderDailyView() {
     const grid = document.getElementById('dailyGrid');
     grid.innerHTML = '';
@@ -570,55 +442,30 @@ function renderDailyView() {
     const dateStr = formatDateForSheets(selectedDate);
     const dayData = getDayData(dateStr);
     
-    console.log('📅 Rendering daily view for:', dateStr);
-    
     ACTIVITIES.forEach(activity => {
         const btn = document.createElement('button');
         btn.className = 'activity-btn';
-        btn.dataset.activity = activity.id;
         
-        if (dayData[activity.column]) {
-            btn.classList.add('active');
-        }
+        if (dayData[activity.column]) btn.classList.add('active');
+        if (dayData.RestDay && activity.id !== 'RestDay') btn.classList.add('disabled');
+        if (activity.id === 'RestDay' && hasAnyActivity(dayData)) btn.classList.add('disabled');
         
-        if (dayData.RestDay && activity.id !== 'RestDay') {
-            btn.classList.add('disabled');
-        } else if (activity.id === 'RestDay' && hasAnyActivity(dayData)) {
-            btn.classList.add('disabled');
-        }
+        btn.innerHTML = `
+            ${activity.icon ? `<span class="icon">${activity.icon}</span>` : ''}
+            <span>${activity.name}</span>
+            ${dayData[activity.column] ? '<span class="check">✓</span>' : ''}
+        `;
         
-        if (activity.icon) {
-            btn.innerHTML = `
-                <span class="icon">${activity.icon}</span>
-                <span>${activity.name}</span>
-                ${dayData[activity.column] ? '<span class="check">✓</span>' : ''}
-            `;
-        } else {
-            btn.innerHTML = `
-                <span>${activity.name}</span>
-                ${dayData[activity.column] ? '<span class="check">✓</span>' : ''}
-            `;
-        }
-        
-        btn.addEventListener('click', (e) => {
-            e.preventDefault();
-            e.stopPropagation();
-            console.log('👆 Button clicked:', activity.id);
-            toggleActivity(activity.id, dateStr);
-        });
-        
+        btn.addEventListener('click', () => toggleActivity(activity.id, dateStr));
         grid.appendChild(btn);
     });
 }
 
 function toggleActivity(activityId, dateStr) {
-    if (!navigator.onLine || !isSignedIn) {
-        console.log('⚠️ Cannot toggle - offline or not signed in');
+    if (!isSignedIn) {
         alert('Please sign in to save changes');
         return;
     }
-    
-    console.log('🔄 Toggling activity:', activityId);
     
     const activity = ACTIVITIES.find(a => a.id === activityId);
     const dayData = getDayData(dateStr);
@@ -650,10 +497,6 @@ function hasAnyActivity(dayData) {
     return ACTIVITIES.some(a => a.id !== 'RestDay' && dayData[a.column]);
 }
 
-// ========================================
-// WEEK VIEW
-// ========================================
-
 function renderWeekView() {
     const timeline = document.getElementById('weekTimeline');
     const summary = document.getElementById('weekSummary');
@@ -683,7 +526,7 @@ function renderWeekView() {
             <div class="activity-chips">
                 ${activeActivities.length > 0 
                     ? activeActivities.map(a => `
-                        <div class="activity-chip" data-activity="${a.id}">
+                        <div class="activity-chip">
                             ${a.icon ? `<span class="icon">${a.icon}</span>` : ''}
                             <span>${a.name}</span>
                         </div>
@@ -732,10 +575,6 @@ function getLast7Days() {
     }
     return days;
 }
-
-// ========================================
-// MONTH VIEW
-// ========================================
 
 function renderMonthView() {
     const scorecard = document.getElementById('monthScorecard');
@@ -790,10 +629,6 @@ function getMonthData(month) {
     return counts;
 }
 
-// ========================================
-// GOALS VIEW
-// ========================================
-
 function renderGoalsView() {
     const goalsList = document.getElementById('goalsList');
     goalsList.innerHTML = '';
@@ -815,30 +650,19 @@ function renderGoalsView() {
             </div>
             <div class="goal-input-group">
                 <div class="stepper">
-                    <button class="stepper-btn decrease-btn" data-activity="${activity.column}">−</button>
+                    <button class="stepper-btn decrease-btn">−</button>
                     <div class="stepper-value">${weeklyTarget}</div>
-                    <button class="stepper-btn increase-btn" data-activity="${activity.column}">+</button>
+                    <button class="stepper-btn increase-btn">+</button>
                 </div>
             </div>
-            <div class="monthly-derived">
-                ≈ <span class="value">${monthlyDerived}</span> per month
-            </div>
+            <div class="monthly-derived">≈ <span class="value">${monthlyDerived}</span> per month</div>
         `;
         
-        const decreaseBtn = item.querySelector('.decrease-btn');
-        const increaseBtn = item.querySelector('.increase-btn');
-        
-        decreaseBtn.addEventListener('click', (e) => {
-            e.preventDefault();
-            e.stopPropagation();
-            console.log('➖ Decrease clicked for:', activity.column);
+        item.querySelector('.decrease-btn').addEventListener('click', () => {
             updateGoal(activity.column, Math.max(0, weeklyTarget - 1));
         });
         
-        increaseBtn.addEventListener('click', (e) => {
-            e.preventDefault();
-            e.stopPropagation();
-            console.log('➕ Increase clicked for:', activity.column);
+        item.querySelector('.increase-btn').addEventListener('click', () => {
             updateGoal(activity.column, weeklyTarget + 1);
         });
         
@@ -847,19 +671,17 @@ function renderGoalsView() {
 }
 
 async function updateGoal(activityColumn, newValue) {
-    if (!navigator.onLine || !isSignedIn) {
-        console.log('⚠️ Cannot update goal - offline or not signed in');
+    if (!isSignedIn) {
         alert('Please sign in to save changes');
         return;
     }
     
-    console.log('🎯 Updating goal for:', activityColumn, 'to', newValue);
     await saveGoalData(activityColumn, newValue);
     renderGoalsView();
 }
 
 // ========================================
-// UTILITY FUNCTIONS
+// UTILITIES
 // ========================================
 
 function formatDateForSheets(date) {
@@ -887,14 +709,4 @@ function showLoading() {
 
 function hideLoading() {
     document.getElementById('loadingOverlay').classList.add('hidden');
-}
-
-function showAuthOverlay() {
-    document.getElementById('authOverlay').classList.remove('hidden');
-    document.getElementById('app').classList.add('hidden');
-}
-
-function hideAuthOverlay() {
-    document.getElementById('authOverlay').classList.add('hidden');
-    document.getElementById('app').classList.remove('hidden');
 }

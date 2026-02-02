@@ -78,6 +78,17 @@ function checkStoredToken() {
         console.log('ℹ️ Please sign in');
         sessionStorage.removeItem('accessToken');
         sessionStorage.removeItem('tokenExpiry');
+        
+        // Show auth overlay, hide app
+        console.log('🔍 DEBUG: About to show auth overlay...');
+        console.log('🔍 authOverlay element:', document.getElementById('authOverlay'));
+        console.log('🔍 app element:', document.getElementById('app'));
+        
+        document.getElementById('authOverlay').classList.remove('hidden');
+        document.getElementById('app').classList.add('hidden');
+        
+        console.log('🔍 DEBUG: Auth overlay classes:', document.getElementById('authOverlay').className);
+        console.log('🔍 DEBUG: App classes:', document.getElementById('app').className);
     }
 }
 

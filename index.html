@@ -11,8 +11,11 @@
     <link rel="apple-touch-icon" href="favicon.png">
     <link rel="stylesheet" href="styles.css">
     
-    <!-- Load Google Identity Services with onload callback -->
-    <script src="https://accounts.google.com/gsi/client" async defer onload="initGoogleAuth()"></script>
+    <!-- Load config first -->
+    <script src="config.js"></script>
+    
+    <!-- Load Google Identity Services -->
+    <script src="https://accounts.google.com/gsi/client" async defer></script>
     <script src="https://apis.google.com/js/api.js" async defer></script>
 </head>
 <body>
@@ -116,8 +119,23 @@
         </div>
     </div>
 
-    <!-- Load config and app AFTER Google scripts are declared -->
+    <!-- Load config and app AFTER DOM is ready -->
     <script src="config.js"></script>
     <script src="app.js"></script>
+    
+    <!-- Initialize Google Auth after app.js loads -->
+    <script>
+        // Poll until Google is ready, then call initGoogleAuth
+        function waitForGoogle() {
+            if (typeof google !== 'undefined' && google.accounts) {
+                if (typeof window.initGoogleAuth === 'function') {
+                    window.initGoogleAuth();
+                }
+            } else {
+                setTimeout(waitForGoogle, 200);
+            }
+        }
+        waitForGoogle();
+    </script>
 </body>
 </html>

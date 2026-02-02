@@ -106,10 +106,14 @@ function initGapiClient() {
 }
 
 function checkStoredToken() {
+    console.log('🔍 DEBUG: checkStoredToken called');
+    
     const storedToken = sessionStorage.getItem('accessToken');
     const tokenExpiry = sessionStorage.getItem('tokenExpiry');
     
+    console.log('🔍 DEBUG: About to hide loading...');
     hideLoading();
+    console.log('🔍 DEBUG: After hideLoading call');
     
     if (storedToken && tokenExpiry && Date.now() < parseInt(tokenExpiry)) {
         console.log('✅ Using stored token');

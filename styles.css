@@ -203,10 +203,9 @@ body {
 }
 
 /* ========================================
-   DAILY VIEW
+   SHARED NAVIGATION
    ======================================== */
 
-/* Date navigation (shared by Daily, Week, Month) */
 .date-nav {
     display: flex;
     align-items: center;
@@ -222,151 +221,9 @@ body {
     padding: 0 8px;
 }
 
-.activity-grid {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 12px;
-    margin-top: 16px;
-}
-
-.activity-btn {
-    min-height: 88px;
-    border: none;
-    border-radius: 12px;
-    font-size: 17px;
-    font-weight: 600;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    gap: 6px;
-    transition: all 0.2s ease;
-    cursor: pointer;
-    position: relative;
-}
-
-.activity-btn:active {
-    transform: scale(0.96);
-}
-
-.activity-btn.disabled {
-    opacity: 0.3;
-    pointer-events: none;
-}
-
-.activity-btn .icon {
-    font-size: 28px;
-}
-
-.activity-btn .check {
-    position: absolute;
-    top: 8px;
-    right: 8px;
-    width: 24px;
-    height: 24px;
-    background: #30d158;
-    border-radius: 50%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 14px;
-    color: #fff;
-    font-weight: 700;
-    animation: checkPop 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-    box-shadow: 0 2px 8px rgba(48, 209, 88, 0.4);
-}
-
 @keyframes checkPop {
     0% { transform: scale(0); opacity: 0; }
     100% { transform: scale(1); opacity: 1; }
-}
-
-/* Active state glow */
-.activity-btn.active {
-    box-shadow: 0 0 0 2px rgba(48, 209, 88, 0.6), 0 4px 12px rgba(0, 0, 0, 0.3);
-    transform: scale(1.02);
-}
-
-/* Activity-specific colors */
-.activity-btn[data-activity="UpperBody"] {
-    background: #8B4049;
-    color: #fff;
-}
-
-.activity-btn[data-activity="UpperBody"].active {
-    background: #A85A64;
-}
-
-.activity-btn[data-activity="LowerBody"] {
-    background: #5D2932;
-    color: #fff;
-}
-
-.activity-btn[data-activity="LowerBody"].active {
-    background: #7A3A45;
-}
-
-.activity-btn[data-activity="Zone2"] {
-    background: #3A6B8C;
-    color: #fff;
-}
-
-.activity-btn[data-activity="Zone2"].active {
-    background: #4A8BB0;
-}
-
-.activity-btn[data-activity="VO2Max"] {
-    background: #1F3A52;
-    color: #fff;
-}
-
-.activity-btn[data-activity="VO2Max"].active {
-    background: #2A4D6E;
-}
-
-.activity-btn[data-activity="Walk"] {
-    background: #5A9ABF;
-    color: #fff;
-}
-
-.activity-btn[data-activity="Walk"].active {
-    background: #6FB3D9;
-}
-
-.activity-btn[data-activity="SportDay"] {
-    background: #4A6B7F;
-    color: #fff;
-}
-
-.activity-btn[data-activity="SportDay"].active {
-    background: #5D8399;
-}
-
-.activity-btn[data-activity="Sauna"] {
-    background: #D97E47;
-    color: #fff;
-}
-
-.activity-btn[data-activity="Sauna"].active {
-    background: #E69A66;
-}
-
-.activity-btn[data-activity="ColdPlunge"] {
-    background: #4DA6BA;
-    color: #fff;
-}
-
-.activity-btn[data-activity="ColdPlunge"].active {
-    background: #6BBFD1;
-}
-
-.activity-btn[data-activity="RestDay"] {
-    background: #3A3A3C;
-    color: #fff;
-}
-
-.activity-btn[data-activity="RestDay"].active {
-    background: #5A5A5C;
 }
 
 /* ========================================
@@ -890,7 +747,6 @@ body {
    DISABLED STATE (OFFLINE)
    ======================================== */
 
-body.offline .activity-btn,
 body.offline .stepper-btn,
 body.offline .nav-btn {
     opacity: 0.5;

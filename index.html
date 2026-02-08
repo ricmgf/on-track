@@ -19,20 +19,6 @@
 
     <!-- Main Container -->
     <div id="app" class="app-container">
-        
-        <!-- Daily View -->
-        <div id="dailyView" class="view">
-            <div class="view-header">
-                <h1>Daily</h1>
-                <div class="date-nav">
-                    <button id="prevDayBtn" class="nav-btn">‹</button>
-                    <h2 id="dailyDateTitle" class="date-nav-title"></h2>
-                    <button id="nextDayBtn" class="nav-btn">›</button>
-                </div>
-            </div>
-            <div id="dailyGrid" class="activity-grid">
-            </div>
-        </div>
 
         <!-- Week View -->
         <div id="weekView" class="view active">
@@ -49,7 +35,7 @@
             </div>
         </div>
 
-        <!-- Activity Modal (shared overlay) -->
+        <!-- Activity Modal -->
         <div id="activityModal" class="activity-modal hidden">
             <div class="modal-backdrop"></div>
             <div class="modal-sheet">
@@ -79,7 +65,6 @@
                 </div>
             </div>
             <div id="monthScorecard" class="month-scorecard">
-                <!-- Monthly scorecard will be dynamically generated -->
             </div>
         </div>
 
@@ -90,18 +75,13 @@
                 <p class="goals-subtitle">Weekly targets</p>
             </div>
             <div id="goalsList" class="goals-list">
-                <!-- Goals inputs will be dynamically generated -->
             </div>
         </div>
 
         <!-- Bottom Navigation -->
         <nav class="bottom-nav">
-            <button class="nav-item" data-view="dailyView">
-                <span class="nav-icon">📅</span>
-                <span class="nav-label">Daily</span>
-            </button>
             <button class="nav-item active" data-view="weekView">
-                <span class="nav-icon">📊</span>
+                <span class="nav-icon">📅</span>
                 <span class="nav-label">Week</span>
             </button>
             <button class="nav-item" data-view="monthView">

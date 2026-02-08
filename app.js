@@ -12,7 +12,6 @@ let sheetsData = {
 };
 
 let currentView = 'weekView';
-let selectedDate = new Date();
 let selectedWeekStart = getMonday(new Date());
 let selectedMonth = new Date();
 
@@ -217,10 +216,6 @@ function handleAuthResponse(response) {
 
 window.addEventListener('load', () => {
     console.log('📱 App loaded');
-    
-    selectedDate = new Date();
-    selectedDate.setHours(0, 0, 0, 0);
-    
     setupEventListeners();
     setupOfflineDetection();
 });
@@ -434,17 +429,6 @@ function setupEventListeners() {
         });
     });
     
-    // Daily: prev/next day
-    document.getElementById('prevDayBtn').addEventListener('click', () => {
-        selectedDate.setDate(selectedDate.getDate() - 1);
-        renderDailyView();
-    });
-    
-    document.getElementById('nextDayBtn').addEventListener('click', () => {
-        selectedDate.setDate(selectedDate.getDate() + 1);
-        renderDailyView();
-    });
-    
     // Week: prev/next week
     document.getElementById('prevWeekBtn').addEventListener('click', () => {
         selectedWeekStart.setDate(selectedWeekStart.getDate() - 7);
@@ -502,91 +486,10 @@ function switchView(viewId) {
 }
 
 function renderCurrentView() {
-    console.log('🎨 Rendering view:', currentView);
     switch (currentView) {
-        case 'dailyView': renderDailyView(); break;
         case 'weekView': renderWeekView(); break;
         case 'monthView': renderMonthView(); break;
         case 'goalsView': renderGoalsView(); break;
-    }
-    // Ensure the active view is visible
-    const activeView = document.getElementById(currentView);
-    if (activeView) {
-        activeView.classList.add('active');
-        console.log('🎨 Active view element:', currentView, 'display:', getComputedStyle(activeView).display, 'children:', activeView.children.length);
-    }
-}
-
-function renderDailyView() {
-    const grid = document.getElementById('dailyGrid');
-    grid.innerHTML = '';
-    
-    const dateStr = formatDateForSheets(selectedDate);
-    const dayData = getDayData(dateStr);
-    
-    // Update date title
-    const todayStr = formatDateForSheets(new Date());
-    const title = document.getElementById('dailyDateTitle');
-    if (dateStr === todayStr) {
-        title.textContent = 'Today — ' + formatFullDate(selectedDate);
-    } else {
-        title.textContent = formatFullDate(selectedDate);
-    }
-    
-    ACTIVITIES.forEach(activity => {
-        const btn = document.createElement('button');
-        btn.className = 'activity-btn';
-        btn.setAttribute('data-activity', activity.id);
-        
-        if (dayData[activity.column]) btn.classList.add('active');
-        if (dayData.RestDay && activity.id !== 'RestDay') btn.classList.add('disabled');
-        if (activity.id === 'RestDay' && hasAnyActivity(dayData)) btn.classList.add('disabled');
-        
-        btn.innerHTML = `
-            ${activity.icon ? `<span class="icon">${activity.icon}</span>` : ''}
-            <span>${activity.name}</span>
-            ${dayData[activity.column] ? '<span class="check">✓</span>' : ''}
-        `;
-        
-        btn.addEventListener('click', () => toggleActivity(activity.id, dateStr));
-        grid.appendChild(btn);
-    });
-}
-
-async function toggleActivity(activityId, dateStr) {
-    if (!isSignedIn) {
-        alert('Please sign in to save changes');
-        return;
-    }
-    
-    const activity = ACTIVITIES.find(a => a.id === activityId);
-    const dayData = getDayData(dateStr);
-    const newValue = !dayData[activity.column];
-    
-    if (activityId === 'RestDay' && newValue) {
-        ACTIVITIES.forEach(a => dayData[a.column] = a.id === 'RestDay');
-    } else if (activityId !== 'RestDay' && newValue && dayData.RestDay) {
-        dayData.RestDay = false;
-        dayData[activity.column] = true;
-    } else {
-        dayData[activity.column] = newValue;
-    }
-    
-    // Update local state immediately so UI reflects change
-    const existingIndex = sheetsData.log.findIndex(e => e.date === dateStr);
-    if (existingIndex >= 0) {
-        sheetsData.log[existingIndex] = { date: dateStr, ...dayData };
-    } else {
-        sheetsData.log.push({ date: dateStr, ...dayData });
-    }
-    
-    renderDailyView();
-    
-    // Save to Google Sheets in background
-    try {
-        await saveDayData(selectedDate, dayData);
-    } catch (error) {
-        console.error('❌ Failed to save:', error);
     }
 }
 
@@ -597,10 +500,6 @@ function getDayData(dateStr) {
     const defaultData = { date: dateStr };
     ACTIVITIES.forEach(a => defaultData[a.column] = false);
     return defaultData;
-}
-
-function hasAnyActivity(dayData) {
-    return ACTIVITIES.some(a => a.id !== 'RestDay' && dayData[a.column]);
 }
 
 function renderWeekView() {
@@ -893,19 +792,7 @@ function formatDateForSheets(date) {
     return `${year}-${month}-${day}`;
 }
 
-function formatFullDate(date) {
-    return date.toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric' });
-}
-
 function formatShortDate(date) {
-    return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
-}
-
-function formatDayName(date) {
-    return date.toLocaleDateString('en-US', { weekday: 'long' });
-}
-
-function formatDayDate(date) {
     return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
 }
 

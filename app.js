@@ -13,8 +13,16 @@ let sheetsData = {
 
 let currentView = 'dailyView';
 let selectedDate = new Date();
-let weekViewMode = 'thisWeek';
+let selectedWeekStart = getMonday(new Date());
 let selectedMonth = new Date();
+
+function getMonday(d) {
+    const date = new Date(d);
+    const day = date.getDay();
+    date.setDate(date.getDate() - (day === 0 ? 6 : day - 1));
+    date.setHours(0, 0, 0, 0);
+    return date;
+}
 
 // ========================================
 // UI CONTROL FUNCTIONS
@@ -210,9 +218,8 @@ function handleAuthResponse(response) {
 window.addEventListener('load', () => {
     console.log('📱 App loaded');
     
-    const today = new Date();
-    document.getElementById('dailyDatePicker').value = today.toISOString().split('T')[0];
-    selectedDate = today;
+    selectedDate = new Date();
+    selectedDate.setHours(0, 0, 0, 0);
     
     setupEventListeners();
     setupOfflineDetection();
@@ -427,27 +434,29 @@ function setupEventListeners() {
         });
     });
     
-    document.getElementById('dailyDatePicker').addEventListener('change', (e) => {
-        if (e.target.value) {
-            selectedDate = new Date(e.target.value + 'T00:00:00');
-            renderDailyView();
-        }
+    // Daily: prev/next day
+    document.getElementById('prevDayBtn').addEventListener('click', () => {
+        selectedDate.setDate(selectedDate.getDate() - 1);
+        renderDailyView();
     });
     
-    document.getElementById('thisWeekBtn').addEventListener('click', () => {
-        weekViewMode = 'thisWeek';
-        document.getElementById('thisWeekBtn').classList.add('active');
-        document.getElementById('last7DaysBtn').classList.remove('active');
+    document.getElementById('nextDayBtn').addEventListener('click', () => {
+        selectedDate.setDate(selectedDate.getDate() + 1);
+        renderDailyView();
+    });
+    
+    // Week: prev/next week
+    document.getElementById('prevWeekBtn').addEventListener('click', () => {
+        selectedWeekStart.setDate(selectedWeekStart.getDate() - 7);
         renderWeekView();
     });
     
-    document.getElementById('last7DaysBtn').addEventListener('click', () => {
-        weekViewMode = 'last7Days';
-        document.getElementById('last7DaysBtn').classList.add('active');
-        document.getElementById('thisWeekBtn').classList.remove('active');
+    document.getElementById('nextWeekBtn').addEventListener('click', () => {
+        selectedWeekStart.setDate(selectedWeekStart.getDate() + 7);
         renderWeekView();
     });
     
+    // Month: prev/next month
     document.getElementById('prevMonthBtn').addEventListener('click', () => {
         selectedMonth.setMonth(selectedMonth.getMonth() - 1);
         renderMonthView();
@@ -514,7 +523,15 @@ function renderDailyView() {
     
     const dateStr = formatDateForSheets(selectedDate);
     const dayData = getDayData(dateStr);
-    console.log('🎨 Rendering daily view for', dateStr, 'activities:', ACTIVITIES.length);
+    
+    // Update date title
+    const todayStr = formatDateForSheets(new Date());
+    const title = document.getElementById('dailyDateTitle');
+    if (dateStr === todayStr) {
+        title.textContent = 'Today — ' + formatFullDate(selectedDate);
+    } else {
+        title.textContent = formatFullDate(selectedDate);
+    }
     
     ACTIVITIES.forEach(activity => {
         const btn = document.createElement('button');
@@ -591,8 +608,19 @@ function renderWeekView() {
     const summary = document.getElementById('weekSummary');
     timeline.innerHTML = '';
     
-    const days = weekViewMode === 'thisWeek' ? getThisWeekDays() : getLast7Days();
-    console.log('🗓️ Week mode:', weekViewMode, 'days:', days.map(d => formatDateForSheets(d)));
+    // Get 7 days from selectedWeekStart (Monday)
+    const days = [];
+    for (let i = 0; i < 7; i++) {
+        const day = new Date(selectedWeekStart);
+        day.setDate(selectedWeekStart.getDate() + i);
+        days.push(day);
+    }
+    
+    // Update week title
+    const weekEnd = days[6];
+    const title = document.getElementById('weekDateTitle');
+    title.textContent = `${formatShortDate(selectedWeekStart)} – ${formatShortDate(weekEnd)}`;
+    
     const weeklyCounts = {};
     ACTIVITIES.forEach(a => weeklyCounts[a.column] = 0);
     
@@ -641,32 +669,6 @@ function renderWeekView() {
             `).join('')}
         </div>
     `;
-}
-
-function getThisWeekDays() {
-    const today = new Date();
-    const dayOfWeek = today.getDay();
-    const monday = new Date(today);
-    monday.setDate(today.getDate() - (dayOfWeek === 0 ? 6 : dayOfWeek - 1));
-    
-    const days = [];
-    for (let i = 0; i < 7; i++) {
-        const day = new Date(monday);
-        day.setDate(monday.getDate() + i);
-        days.push(day);
-    }
-    return days;
-}
-
-function getLast7Days() {
-    const days = [];
-    const today = new Date();
-    for (let i = 6; i >= 0; i--) {
-        const day = new Date(today);
-        day.setDate(today.getDate() - i);
-        days.push(day);
-    }
-    return days;
 }
 
 function renderMonthView() {
@@ -782,6 +784,14 @@ function formatDateForSheets(date) {
     const month = String(date.getMonth() + 1).padStart(2, '0');
     const day = String(date.getDate()).padStart(2, '0');
     return `${year}-${month}-${day}`;
+}
+
+function formatFullDate(date) {
+    return date.toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric' });
+}
+
+function formatShortDate(date) {
+    return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
 }
 
 function formatDayName(date) {

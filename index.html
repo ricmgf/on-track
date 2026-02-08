@@ -2,8 +2,8 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+    <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="apple-mobile-web-app-title" content="On Track">
     <title>On Track</title>
@@ -17,41 +17,52 @@
         Offline — connect to sync
     </div>
 
-    <!-- Main App (hidden until authenticated) -->
-    <div id="app" class="app-container hidden">
+    <!-- Main Container -->
+    <div id="app" class="app-container">
         
         <!-- Daily View -->
         <div id="dailyView" class="view active">
             <div class="view-header">
                 <h1>Daily</h1>
-                <input type="date" id="dailyDatePicker" class="date-picker">
+                <div class="date-nav">
+                    <button id="prevDayBtn" class="nav-btn">‹</button>
+                    <h2 id="dailyDateTitle" class="date-nav-title"></h2>
+                    <button id="nextDayBtn" class="nav-btn">›</button>
+                </div>
             </div>
-            <div id="dailyGrid" class="activity-grid"></div>
+            <div id="dailyGrid" class="activity-grid">
+            </div>
         </div>
 
         <!-- Week View -->
         <div id="weekView" class="view">
             <div class="view-header">
                 <h1>Week</h1>
-                <div class="week-toggle">
-                    <button id="thisWeekBtn" class="toggle-btn active">This Week</button>
-                    <button id="last7DaysBtn" class="toggle-btn">Last 7 Days</button>
+                <div class="date-nav">
+                    <button id="prevWeekBtn" class="nav-btn">‹</button>
+                    <h2 id="weekDateTitle" class="date-nav-title"></h2>
+                    <button id="nextWeekBtn" class="nav-btn">›</button>
                 </div>
             </div>
-            <div id="weekTimeline" class="week-timeline"></div>
-            <div id="weekSummary" class="week-summary"></div>
+            <div id="weekTimeline" class="week-timeline">
+            </div>
+            <div id="weekSummary" class="week-summary">
+            </div>
         </div>
 
         <!-- Month View -->
         <div id="monthView" class="view">
             <div class="view-header">
-                <div class="month-nav">
+                <h1>Month</h1>
+                <div class="date-nav">
                     <button id="prevMonthBtn" class="nav-btn">‹</button>
-                    <h1 id="monthTitle">Month</h1>
+                    <h2 id="monthTitle" class="date-nav-title">Month</h2>
                     <button id="nextMonthBtn" class="nav-btn">›</button>
                 </div>
             </div>
-            <div id="monthScorecard" class="month-scorecard"></div>
+            <div id="monthScorecard" class="month-scorecard">
+                <!-- Monthly scorecard will be dynamically generated -->
+            </div>
         </div>
 
         <!-- Goals View -->
@@ -60,7 +71,9 @@
                 <h1>Goals</h1>
                 <p class="goals-subtitle">Weekly targets</p>
             </div>
-            <div id="goalsList" class="goals-list"></div>
+            <div id="goalsList" class="goals-list">
+                <!-- Goals inputs will be dynamically generated -->
+            </div>
         </div>
 
         <!-- Bottom Navigation -->
@@ -84,28 +97,27 @@
         </nav>
     </div>
 
+    <!-- Auth Overlay -->
+    <div id="authOverlay" class="auth-overlay" style="display: none;">
+        <div class="auth-card">
+            <div class="auth-icon">🏋️</div>
+            <h2>On Track</h2>
+            <p>Sign in to track your workouts and sync with Google Sheets</p>
+            <button id="signInBtn" class="sign-in-btn" disabled onclick="signIn()">
+                <span id="signInBtnText">Loading...</span>
+            </button>
+        </div>
+    </div>
+
     <!-- Loading Overlay -->
     <div id="loadingOverlay" class="loading-overlay">
         <div class="spinner"></div>
         <p>Loading...</p>
     </div>
 
-    <!-- Auth Overlay -->
-    <div id="authOverlay" class="auth-overlay">
-        <div class="auth-card">
-            <div class="auth-icon">🏋️</div>
-            <h2>Welcome to On Track</h2>
-            <p>Sign in with Google to start tracking your training</p>
-            <button id="signInBtn" class="sign-in-btn" onclick="signIn()" disabled>
-                <span id="signInBtnText">Loading...</span>
-            </button>
-        </div>
-    </div>
-
-    <!-- Scripts: Load in correct order -->
+    <script src="https://accounts.google.com/gsi/client" async defer></script>
+    <script src="https://apis.google.com/js/api.js" onload="initGoogleAuth()" async defer></script>
     <script src="config.js"></script>
     <script src="app.js"></script>
-    <script src="https://apis.google.com/js/api.js"></script>
-    <script src="https://accounts.google.com/gsi/client" async defer onload="initGoogleAuth()"></script>
 </body>
 </html>

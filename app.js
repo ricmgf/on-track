@@ -519,6 +519,7 @@ function renderDailyView() {
     ACTIVITIES.forEach(activity => {
         const btn = document.createElement('button');
         btn.className = 'activity-btn';
+        btn.setAttribute('data-activity', activity.id);
         
         if (dayData[activity.column]) btn.classList.add('active');
         if (dayData.RestDay && activity.id !== 'RestDay') btn.classList.add('disabled');
@@ -535,7 +536,7 @@ function renderDailyView() {
     });
 }
 
-function toggleActivity(activityId, dateStr) {
+async function toggleActivity(activityId, dateStr) {
     if (!isSignedIn) {
         alert('Please sign in to save changes');
         return;
@@ -554,8 +555,22 @@ function toggleActivity(activityId, dateStr) {
         dayData[activity.column] = newValue;
     }
     
-    saveDayData(selectedDate, dayData);
+    // Update local state immediately so UI reflects change
+    const existingIndex = sheetsData.log.findIndex(e => e.date === dateStr);
+    if (existingIndex >= 0) {
+        sheetsData.log[existingIndex] = { date: dateStr, ...dayData };
+    } else {
+        sheetsData.log.push({ date: dateStr, ...dayData });
+    }
+    
     renderDailyView();
+    
+    // Save to Google Sheets in background
+    try {
+        await saveDayData(selectedDate, dayData);
+    } catch (error) {
+        console.error('❌ Failed to save:', error);
+    }
 }
 
 function getDayData(dateStr) {
@@ -577,8 +592,11 @@ function renderWeekView() {
     timeline.innerHTML = '';
     
     const days = weekViewMode === 'thisWeek' ? getThisWeekDays() : getLast7Days();
+    console.log('🗓️ Week mode:', weekViewMode, 'days:', days.map(d => formatDateForSheets(d)));
     const weeklyCounts = {};
     ACTIVITIES.forEach(a => weeklyCounts[a.column] = 0);
+    
+    const todayStr = formatDateForSheets(new Date());
     
     days.forEach(date => {
         const dateStr = formatDateForSheets(date);
@@ -589,18 +607,19 @@ function renderWeekView() {
         });
         
         const activeActivities = ACTIVITIES.filter(a => dayData[a.column]);
+        const isToday = dateStr === todayStr;
         
         const card = document.createElement('div');
-        card.className = 'day-card';
+        card.className = 'day-card' + (isToday ? ' today' : '');
         card.innerHTML = `
             <div class="day-header">
-                <div class="day-name">${formatDayName(date)}</div>
+                <div class="day-name">${formatDayName(date)} ${date.getDate()}</div>
                 <div class="day-date">${formatDayDate(date)}</div>
             </div>
             <div class="activity-chips">
                 ${activeActivities.length > 0 
                     ? activeActivities.map(a => `
-                        <div class="activity-chip">
+                        <div class="activity-chip" data-activity="${a.id}">
                             ${a.icon ? `<span class="icon">${a.icon}</span>` : ''}
                             <span>${a.name}</span>
                         </div>

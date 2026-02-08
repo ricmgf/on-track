@@ -260,11 +260,31 @@ body {
 
 .activity-btn .check {
     position: absolute;
-    bottom: 8px;
+    top: 8px;
     right: 8px;
-    font-size: 16px;
-    color: #30d158;
+    width: 24px;
+    height: 24px;
+    background: #30d158;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 14px;
+    color: #fff;
     font-weight: 700;
+    animation: checkPop 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    box-shadow: 0 2px 8px rgba(48, 209, 88, 0.4);
+}
+
+@keyframes checkPop {
+    0% { transform: scale(0); opacity: 0; }
+    100% { transform: scale(1); opacity: 1; }
+}
+
+/* Active state glow */
+.activity-btn.active {
+    box-shadow: 0 0 0 2px rgba(48, 209, 88, 0.6), 0 4px 12px rgba(0, 0, 0, 0.3);
+    transform: scale(1.02);
 }
 
 /* Activity-specific colors */
@@ -390,6 +410,11 @@ body {
     border-radius: 12px;
     padding: 16px;
     margin-bottom: 12px;
+}
+
+.day-card.today {
+    border: 1px solid rgba(48, 209, 88, 0.5);
+    background: #1a2a1e;
 }
 
 .day-header {

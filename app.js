@@ -29,10 +29,10 @@ function showAuthOverlay() {
     if (authOverlay && app && loading) {
         loading.style.display = 'none';  // Hide loading first
         authOverlay.style.display = 'flex';
-        app.style.display = 'none';
+        app.style.visibility = 'hidden';
         console.log('✅ Auth overlay shown, app hidden, loading hidden');
     } else {
-        console.error('❌ Cannot find required elements');
+        console.error('❌ Cannot find required elements:', { authOverlay: !!authOverlay, app: !!app, loading: !!loading });
     }
 }
 
@@ -45,10 +45,12 @@ function hideAuthOverlay() {
     if (authOverlay && app && loading) {
         loading.style.display = 'none';  // Keep loading hidden
         authOverlay.style.display = 'none';
-        app.style.display = 'flex';
+        app.style.display = '';  // Remove inline style, let CSS .app-container handle it
+        app.style.visibility = 'visible';
+        app.style.opacity = '1';
         console.log('✅ Auth overlay hidden, app shown');
     } else {
-        console.error('❌ Cannot find required elements');
+        console.error('❌ Cannot find required elements:', { authOverlay: !!authOverlay, app: !!app, loading: !!loading });
     }
 }
 
@@ -119,7 +121,7 @@ function initGapiClient() {
     });
 }
 
-function checkStoredToken() {
+async function checkStoredToken() {
     console.log('🔍 DEBUG: checkStoredToken called');
     
     const storedToken = localStorage.getItem('accessToken');
@@ -130,20 +132,33 @@ function checkStoredToken() {
     console.log('🔍 DEBUG: After hideLoading call');
     
     if (storedToken && tokenExpiry && Date.now() < parseInt(tokenExpiry)) {
-        console.log('✅ Using stored token');
-        accessToken = storedToken;
-        isSignedIn = true;
-        window.gapi.client.setToken({ access_token: accessToken });
-        
-        hideAuthOverlay();
-        loadAllData();
-    } else {
-        console.log('ℹ️ Please sign in');
-        localStorage.removeItem('accessToken');
-        localStorage.removeItem('tokenExpiry');
-        
-        showAuthOverlay();
+        // Validate token is still actually valid with Google
+        try {
+            const response = await fetch('https://www.googleapis.com/oauth2/v1/tokeninfo?access_token=' + storedToken);
+            if (!response.ok) {
+                throw new Error('Token invalid');
+            }
+            console.log('✅ Stored token validated');
+            accessToken = storedToken;
+            isSignedIn = true;
+            window.gapi.client.setToken({ access_token: accessToken });
+            
+            hideAuthOverlay();
+            loadAllData();
+            return;
+        } catch (e) {
+            console.log('⚠️ Stored token is no longer valid, clearing...');
+        }
     }
+    
+    // Token missing, expired, or invalid — require fresh login
+    console.log('ℹ️ Please sign in');
+    localStorage.removeItem('accessToken');
+    localStorage.removeItem('tokenExpiry');
+    accessToken = null;
+    isSignedIn = false;
+    
+    showAuthOverlay();
 }
 
 // ========================================
@@ -477,11 +492,18 @@ function switchView(viewId) {
 }
 
 function renderCurrentView() {
+    console.log('🎨 Rendering view:', currentView);
     switch (currentView) {
         case 'dailyView': renderDailyView(); break;
         case 'weekView': renderWeekView(); break;
         case 'monthView': renderMonthView(); break;
         case 'goalsView': renderGoalsView(); break;
+    }
+    // Ensure the active view is visible
+    const activeView = document.getElementById(currentView);
+    if (activeView) {
+        activeView.classList.add('active');
+        console.log('🎨 Active view element:', currentView, 'display:', getComputedStyle(activeView).display, 'children:', activeView.children.length);
     }
 }
 
@@ -491,6 +513,7 @@ function renderDailyView() {
     
     const dateStr = formatDateForSheets(selectedDate);
     const dayData = getDayData(dateStr);
+    console.log('🎨 Rendering daily view for', dateStr, 'activities:', ACTIVITIES.length);
     
     ACTIVITIES.forEach(activity => {
         const btn = document.createElement('button');

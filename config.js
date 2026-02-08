@@ -29,55 +29,73 @@ const ACTIVITIES = [
     {
         id: 'UpperBody',
         name: 'Upper Body',
+        short: 'Upper',
         icon: null,
+        color: '#A85A64',
         column: 'UpperBody'
     },
     {
         id: 'LowerBody',
         name: 'Lower Body',
+        short: 'Lower',
         icon: null,
+        color: '#7A3A45',
         column: 'LowerBody'
     },
     {
         id: 'Zone2',
         name: 'Zone 2',
+        short: 'Zone 2',
         icon: null,
+        color: '#4A8BB0',
         column: 'Zone2'
     },
     {
         id: 'VO2Max',
         name: 'VO₂ Max',
+        short: 'VO₂Max',
         icon: null,
+        color: '#2A4D6E',
         column: 'VO2Max'
     },
     {
         id: 'Walk',
         name: 'Walk',
+        short: 'Walk',
         icon: null,
+        color: '#6FB3D9',
         column: 'Walk'
     },
     {
         id: 'SportDay',
         name: 'Sport Day',
+        short: 'Sport',
         icon: null,
+        color: '#5D8399',
         column: 'SportDay'
     },
     {
         id: 'Sauna',
         name: 'Sauna',
+        short: 'Sauna',
         icon: '🔥',
+        color: '#D97E47',
         column: 'Sauna'
     },
     {
         id: 'ColdPlunge',
         name: 'Cold Plunge',
+        short: 'Cold',
         icon: '❄️',
+        color: '#4DA6BA',
         column: 'ColdPlunge'
     },
     {
         id: 'RestDay',
         name: 'Rest Day',
+        short: 'Rest',
         icon: null,
+        color: '#3A3A3C',
         column: 'RestDay'
     }
 ];

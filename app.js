@@ -11,7 +11,7 @@ let sheetsData = {
     goals: {}
 };
 
-let currentView = 'dailyView';
+let currentView = 'weekView';
 let selectedDate = new Date();
 let selectedWeekStart = getMonday(new Date());
 let selectedMonth = new Date();
@@ -604,9 +604,9 @@ function hasAnyActivity(dayData) {
 }
 
 function renderWeekView() {
-    const timeline = document.getElementById('weekTimeline');
+    const strips = document.getElementById('weekStrips');
     const summary = document.getElementById('weekSummary');
-    timeline.innerHTML = '';
+    strips.innerHTML = '';
     
     // Get 7 days from selectedWeekStart (Monday)
     const days = [];
@@ -625,8 +625,9 @@ function renderWeekView() {
     ACTIVITIES.forEach(a => weeklyCounts[a.column] = 0);
     
     const todayStr = formatDateForSheets(new Date());
+    const dayAbbrevs = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
     
-    days.forEach(date => {
+    days.forEach((date, index) => {
         const dateStr = formatDateForSheets(date);
         const dayData = getDayData(dateStr);
         
@@ -637,38 +638,145 @@ function renderWeekView() {
         const activeActivities = ACTIVITIES.filter(a => dayData[a.column]);
         const isToday = dateStr === todayStr;
         
-        const card = document.createElement('div');
-        card.className = 'day-card' + (isToday ? ' today' : '');
-        card.innerHTML = `
-            <div class="day-header">
-                <div class="day-name">${formatDayName(date)} ${date.getDate()}</div>
-                <div class="day-date">${formatDayDate(date)}</div>
+        const strip = document.createElement('div');
+        strip.className = 'day-strip' + (isToday ? ' today' : '');
+        
+        let blocksHTML = '';
+        if (activeActivities.length > 0) {
+            const sizeClass = activeActivities.length >= 3 ? ' three-plus' : '';
+            blocksHTML = activeActivities.map(a => 
+                `<div class="day-strip-block${sizeClass}" style="background:${a.color}">${a.short}</div>`
+            ).join('');
+            blocksHTML += '<div class="day-strip-add">+</div>';
+        } else {
+            blocksHTML = '<div class="day-strip-empty">+</div>';
+        }
+        
+        strip.innerHTML = `
+            <div class="day-strip-label">
+                <div class="day-strip-day">${dayAbbrevs[index]}</div>
+                <div class="day-strip-num">${date.getDate()}</div>
             </div>
-            <div class="activity-chips">
-                ${activeActivities.length > 0 
-                    ? activeActivities.map(a => `
-                        <div class="activity-chip" data-activity="${a.id}">
-                            ${a.icon ? `<span class="icon">${a.icon}</span>` : ''}
-                            <span>${a.name}</span>
-                        </div>
-                    `).join('')
-                    : '<div class="activity-chip empty">No activity</div>'
-                }
-            </div>
+            <div class="day-strip-activities">${blocksHTML}</div>
         `;
-        timeline.appendChild(card);
+        
+        strip.addEventListener('click', () => openActivityModal(date));
+        strips.appendChild(strip);
     });
     
-    summary.innerHTML = `
-        <h3>Weekly Total</h3>
-        <div class="summary-grid">
-            ${ACTIVITIES.map(a => `
-                <div class="summary-item">
-                    <span class="count">${weeklyCounts[a.column]}</span> ${a.name}
-                </div>
-            `).join('')}
-        </div>
-    `;
+    // Summary bar with goal colors
+    summary.innerHTML = ACTIVITIES.filter(a => a.id !== 'RestDay').map(a => {
+        const count = weeklyCounts[a.column];
+        const goal = sheetsData.goals[a.column] || 0;
+        const goalMet = goal > 0 && count >= goal;
+        const isZero = count === 0 && goal === 0;
+        return `
+            <div class="summary-counter">
+                <div class="summary-counter-num ${isZero ? 'zero' : ''} ${goalMet ? 'goal-met' : ''}">${count}</div>
+                <div class="summary-counter-label ${goalMet ? 'goal-met' : ''}">${a.short}</div>
+            </div>
+        `;
+    }).join('');
+}
+
+// ========================================
+// ACTIVITY MODAL
+// ========================================
+
+let modalDate = null;
+
+function openActivityModal(date) {
+    modalDate = new Date(date);
+    const modal = document.getElementById('activityModal');
+    const dateStr = formatDateForSheets(date);
+    const dayData = getDayData(dateStr);
+    
+    // Set header
+    document.getElementById('modalDayLabel').textContent = date.toLocaleDateString('en-US', { weekday: 'long' });
+    document.getElementById('modalDateLabel').textContent = date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+    
+    // Build grid
+    const grid = document.getElementById('modalGrid');
+    grid.innerHTML = '';
+    
+    ACTIVITIES.forEach(activity => {
+        const isSelected = dayData[activity.column];
+        const btn = document.createElement('button');
+        btn.className = 'modal-activity-btn' + (isSelected ? ' selected' : '');
+        if (isSelected) {
+            btn.style.background = activity.color;
+            btn.style.boxShadow = `0 4px 16px ${activity.color}44`;
+        }
+        btn.innerHTML = `
+            ${activity.icon ? activity.icon + ' ' : ''}${activity.name}
+            ${isSelected ? '<span class="modal-check">✓</span>' : ''}
+        `;
+        btn.addEventListener('click', () => modalToggleActivity(activity.id));
+        grid.appendChild(btn);
+    });
+    
+    updateModalSelected(dateStr);
+    
+    // Show modal
+    modal.classList.remove('hidden');
+    
+    // Close handlers
+    document.getElementById('modalCloseBtn').onclick = closeActivityModal;
+    modal.querySelector('.modal-backdrop').onclick = closeActivityModal;
+}
+
+function modalToggleActivity(activityId) {
+    if (!modalDate || !isSignedIn) return;
+    
+    const dateStr = formatDateForSheets(modalDate);
+    const dayData = getDayData(dateStr);
+    const newValue = !dayData[activityId === 'RestDay' ? 'RestDay' : ACTIVITIES.find(a => a.id === activityId).column];
+    const activity = ACTIVITIES.find(a => a.id === activityId);
+    
+    if (activityId === 'RestDay' && newValue) {
+        ACTIVITIES.forEach(a => dayData[a.column] = a.id === 'RestDay');
+    } else if (activityId !== 'RestDay' && newValue && dayData.RestDay) {
+        dayData.RestDay = false;
+        dayData[activity.column] = true;
+    } else {
+        dayData[activity.column] = newValue;
+    }
+    
+    // Update local state
+    const existingIndex = sheetsData.log.findIndex(e => e.date === dateStr);
+    if (existingIndex >= 0) {
+        sheetsData.log[existingIndex] = { date: dateStr, ...dayData };
+    } else {
+        sheetsData.log.push({ date: dateStr, ...dayData });
+    }
+    
+    // Re-render modal content
+    openActivityModal(modalDate);
+    
+    // Re-render week view behind modal
+    renderWeekView();
+    
+    // Save to Google Sheets in background
+    saveDayData(modalDate, dayData).catch(err => console.error('❌ Failed to save:', err));
+}
+
+function updateModalSelected(dateStr) {
+    const dayData = getDayData(dateStr);
+    const selected = ACTIVITIES.filter(a => dayData[a.column]);
+    const container = document.getElementById('modalSelected');
+    
+    if (selected.length > 0) {
+        container.innerHTML = selected.map(a => 
+            `<span class="modal-chip" style="background:${a.color}">${a.short}</span>`
+        ).join('');
+    } else {
+        container.innerHTML = '<span class="modal-hint">Tap activities to log them</span>';
+    }
+}
+
+function closeActivityModal() {
+    document.getElementById('activityModal').classList.add('hidden');
+    modalDate = null;
 }
 
 function renderMonthView() {
@@ -698,7 +806,6 @@ function renderMonthView() {
             </div>
             <div class="scorecard-progress">
                 <div class="scorecard-numbers">${done} / ${monthlyTarget}</div>
-                ${showStatus ? `<div class="scorecard-status">${isOnTrack ? '🟢' : '🔴'}</div>` : ''}
             </div>
         `;
         scorecard.appendChild(item);

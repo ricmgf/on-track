@@ -21,7 +21,7 @@
     <div id="app" class="app-container">
         
         <!-- Daily View -->
-        <div id="dailyView" class="view active">
+        <div id="dailyView" class="view">
             <div class="view-header">
                 <h1>Daily</h1>
                 <div class="date-nav">
@@ -35,18 +35,36 @@
         </div>
 
         <!-- Week View -->
-        <div id="weekView" class="view">
-            <div class="view-header">
-                <h1>Week</h1>
+        <div id="weekView" class="view active">
+            <div class="view-header week-header">
                 <div class="date-nav">
                     <button id="prevWeekBtn" class="nav-btn">‹</button>
                     <h2 id="weekDateTitle" class="date-nav-title"></h2>
                     <button id="nextWeekBtn" class="nav-btn">›</button>
                 </div>
             </div>
-            <div id="weekTimeline" class="week-timeline">
+            <div id="weekStrips" class="week-strips">
             </div>
-            <div id="weekSummary" class="week-summary">
+            <div id="weekSummary" class="week-summary-bar">
+            </div>
+        </div>
+
+        <!-- Activity Modal (shared overlay) -->
+        <div id="activityModal" class="activity-modal hidden">
+            <div class="modal-backdrop"></div>
+            <div class="modal-sheet">
+                <div class="modal-handle"></div>
+                <div class="modal-header">
+                    <div>
+                        <div id="modalDayLabel" class="modal-day-label"></div>
+                        <div id="modalDateLabel" class="modal-date-label"></div>
+                    </div>
+                    <button id="modalCloseBtn" class="modal-close">✕</button>
+                </div>
+                <div id="modalGrid" class="modal-grid">
+                </div>
+                <div id="modalSelected" class="modal-selected">
+                </div>
             </div>
         </div>
 
@@ -78,11 +96,11 @@
 
         <!-- Bottom Navigation -->
         <nav class="bottom-nav">
-            <button class="nav-item active" data-view="dailyView">
+            <button class="nav-item" data-view="dailyView">
                 <span class="nav-icon">📅</span>
                 <span class="nav-label">Daily</span>
             </button>
-            <button class="nav-item" data-view="weekView">
+            <button class="nav-item active" data-view="weekView">
                 <span class="nav-icon">📊</span>
                 <span class="nav-label">Week</span>
             </button>

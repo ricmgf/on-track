@@ -27,9 +27,9 @@ function showAuthOverlay() {
     const loading = document.getElementById('loadingOverlay');
     
     if (authOverlay && app && loading) {
-        loading.style.display = 'none';  // Hide loading first
+        loading.style.display = 'none';
         authOverlay.style.display = 'flex';
-        app.style.visibility = 'hidden';
+        app.classList.add('hidden');
         console.log('✅ Auth overlay shown, app hidden, loading hidden');
     } else {
         console.error('❌ Cannot find required elements:', { authOverlay: !!authOverlay, app: !!app, loading: !!loading });
@@ -43,12 +43,13 @@ function hideAuthOverlay() {
     const loading = document.getElementById('loadingOverlay');
     
     if (authOverlay && app && loading) {
-        loading.style.display = 'none';  // Keep loading hidden
+        loading.style.display = 'none';
         authOverlay.style.display = 'none';
-        app.style.display = '';  // Remove inline style, let CSS .app-container handle it
-        app.style.visibility = 'visible';
-        app.style.opacity = '1';
-        console.log('✅ Auth overlay hidden, app shown');
+        app.classList.remove('hidden');  // Remove hidden class (display:none !important)
+        app.style.display = '';
+        app.style.visibility = '';
+        app.style.opacity = '';
+        console.log('✅ Auth overlay hidden, app shown, hidden class removed');
     } else {
         console.error('❌ Cannot find required elements:', { authOverlay: !!authOverlay, app: !!app, loading: !!loading });
     }
